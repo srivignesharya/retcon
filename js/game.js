@@ -155,6 +155,11 @@ class RetconGame {
         return;
       }
 
+      // Prevent Itch.io / iframe page scrolling on space or arrow keys
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
+
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.right = true;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = true;
@@ -169,6 +174,10 @@ class RetconGame {
     });
 
     window.addEventListener('keyup', (e) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
+
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.left = false;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.right = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = false;

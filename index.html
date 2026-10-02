@@ -109,7 +109,15 @@
 
   <div id="game-container">
     <div id="canvas-wrapper">
-      <canvas id="gameCanvas" width="960" height="600"></canvas>
+      <canvas id="gameCanvas" width="960" height="600" tabindex="0"></canvas>
+
+      <!-- Iframe Focus Overlay Banner (appears only if game loses focus during play inside an iframe) -->
+      <div id="focus-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26, 26, 46, 0.85); z-index: 999; justify-content: center; align-items: center; cursor: pointer;">
+        <div style="background: #ffd400; border: 4px solid #1a1a2e; border-radius: 8px; padding: 18px 36px; box-shadow: 6px 6px 0 #1a1a2e; text-align: center;">
+          <div style="font-family: 'Arial Black', Impact, sans-serif; font-size: 22px; color: #1a1a2e; letter-spacing: 1.5px;">CLICK TO FOCUS GAME</div>
+          <div style="font-family: 'Arial Black', sans-serif; font-size: 13px; color: #1a1a2e; margin-top: 6px;">Enables keyboard controls inside iframe</div>
+        </div>
+      </div>
     </div>
 
     <!-- On-screen touch controls for tablet/mobile devices -->
@@ -122,19 +130,85 @@
     </div>
   </div>
 
-  <!-- Local Game Scripts (No CDN, No Bundler, Offline Compatible) -->
-  <script src="js/theme.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/narrator.js"></script>
-  <script src="js/particles.js"></script>
-  <script src="js/rules.js"></script>
-  <script src="js/levels.js"></script>
-  <script src="js/hero.js"></script>
-  <script src="js/renderer.js"></script>
-  <script src="js/game.js"></script>
+  <!-- Local Game Scripts - Explicit Relative Paths for Itch.io & Offline (No CDN, No Bundler) -->
+  <script src="./js/theme.js"></script>
+  <script src="./js/audio.js"></script>
+  <script src="./js/narrator.js"></script>
+  <script src="./js/particles.js"></script>
+  <script src="./js/rules.js"></script>
+  <script src="./js/levels.js"></script>
+  <script src="./js/hero.js"></script>
+  <script src="./js/renderer.js"></script>
+  <script src="./js/game.js"></script>
 
-  <!-- Touch button wiring -->
+  <!-- Aspect-Ratio Scaling, Iframe Focus Handling & Touch Wiring -->
   <script>
+    // 1. Dynamic Aspect-Ratio Preserving Scaling (Fixed 960x600 logical resolution)
+    function resizeCanvas() {
+      const container = document.getElementById('game-container');
+      const wrapper = document.getElementById('canvas-wrapper');
+      if (!container || !wrapper) return;
+
+      const availW = container.clientWidth || window.innerWidth;
+      const availH = container.clientHeight || window.innerHeight;
+      const targetRatio = 960 / 600;
+
+      let w = availW - 20; // 10px safe margin on sides
+      let h = w / targetRatio;
+      if (h > availH - 20) {
+        h = availH - 20;
+        w = h * targetRatio;
+      }
+
+      wrapper.style.width = Math.floor(w) + 'px';
+      wrapper.style.height = Math.floor(h) + 'px';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', resizeCanvas);
+    window.addEventListener('DOMContentLoaded', resizeCanvas);
+    window.addEventListener('load', resizeCanvas);
+
+    // 2. Iframe Focus Management (Ensures keyboard works instantly on Itch.io)
+    const focusOverlay = document.getElementById('focus-overlay');
+    const canvas = document.getElementById('gameCanvas');
+
+    const ensureFocus = () => {
+      window.focus();
+      if (canvas) canvas.focus();
+      if (focusOverlay) focusOverlay.style.display = 'none';
+      if (window.sounds) window.sounds.init();
+    };
+
+    if (canvas) {
+      canvas.addEventListener('click', ensureFocus);
+      canvas.addEventListener('mousedown', ensureFocus);
+    }
+
+    if (focusOverlay) {
+      focusOverlay.addEventListener('click', ensureFocus);
+    }
+
+    document.addEventListener('click', ensureFocus);
+    window.addEventListener('load', () => {
+      try {
+        window.focus();
+        if (canvas) canvas.focus();
+      } catch (err) {}
+    });
+
+    window.addEventListener('blur', () => {
+      // If embedded in an iframe and running gameplay, prompt player to click to focus
+      if (window.game && window.game.state === 'PLAYING') {
+        if (focusOverlay) focusOverlay.style.display = 'flex';
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (focusOverlay) focusOverlay.style.display = 'none';
+    });
+
+    // 3. Touch button wiring for touchscreens
     const btnLeft = document.getElementById('btn-left');
     const btnRight = document.getElementById('btn-right');
     const btnJump = document.getElementById('btn-jump');
