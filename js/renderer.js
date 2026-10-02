@@ -498,6 +498,64 @@ class ComicRenderer {
           ctx.fill();
           ctx.stroke();
         }
+      } else if (ent.type === 'narrator_boss') {
+        ctx.save();
+        if (state.lethal) {
+          // Evil Narrator (VILLAIN)
+          ctx.fillStyle = '#3A0CA3';
+          ctx.beginPath();
+          ctx.roundRect(ent.x, ent.y, ent.width, ent.height, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          // Sinister eyes
+          ctx.fillStyle = '#FF0055';
+          ctx.shadowColor = '#FF0055';
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(ent.x + 24, ent.y + 36, 7, 0, Math.PI * 2);
+          ctx.arc(ent.x + ent.width - 24, ent.y + 36, 7, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Lightning crackles
+          ctx.strokeStyle = '#FFE500';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(ent.x - 10, ent.y + 20);
+          ctx.lineTo(ent.x - 2, ent.y + 40);
+          ctx.lineTo(ent.x - 14, ent.y + 60);
+          ctx.stroke();
+        } else {
+          // Heroic Narrator (HERO)
+          ctx.fillStyle = '#00B4D8';
+          ctx.beginPath();
+          ctx.roundRect(ent.x, ent.y, ent.width, ent.height, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          // Friendly eyes
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(ent.x + 24, ent.y + 36, 7, 0, Math.PI * 2);
+          ctx.arc(ent.x + ent.width - 24, ent.y + 36, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(ent.x + 25, ent.y + 36, 3.5, 0, Math.PI * 2);
+          ctx.arc(ent.x + ent.width - 23, ent.y + 36, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Smiling expression
+          ctx.beginPath();
+          ctx.arc(ent.x + ent.width / 2, ent.y + 62, 14, 0.1 * Math.PI, 0.9 * Math.PI);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#000';
+        ctx.font = '900 15px "Bangers", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(state.label, ent.x + ent.width / 2, ent.y - 12);
+        ctx.restore();
       } else if (ent.type === 'guard') {
         ctx.fillStyle = state.color;
         ctx.fillRect(ent.x, ent.y, ent.width, ent.height);
@@ -566,7 +624,7 @@ class ComicRenderer {
   renderNarratorBox(ctx, level, ruleEngine, mousePos) {
     ctx.save();
     const boxX = 40;
-    const boxY = 14;
+    const boxY = level.solidCaptionBox ? 64 : 14;
     const boxW = this.width - 80;
 
     // Check if 2 lines

@@ -1,5 +1,5 @@
 // Level Data Definitions for RETCON
-// All 12 levels feature two-line narrative captions, verb mechanics,
+// All 12 levels feature two-line narrative captions, hero verb mechanics,
 // fourth-wall elements (pushable speech bubbles, solid caption boxes, panel border breaks),
 // and strict mathematical solvability.
 
@@ -33,30 +33,43 @@ const LEVELS = [
     ]
   },
 
-  // ISSUE #2: LIGHT & SHADOW
+  // ISSUE #2: LIGHT & SHADOW (REQUIRES FLOATED OR STOMPED)
   {
     id: 2,
     title: "ISSUE #2: CREATURES OF THE DARK",
-    captionTemplate: "The sky was [time] and a shadow beast guarded the path.\nEd [verb] to the door.",
+    captionTemplate: "The sky was [time] and a high obstacle blocked the exit.\nEd [verb] to the door.",
     words: { time: "NIGHT", verb: "WALKED" },
-    wordOptions: { time: ["NIGHT", "DAY"], verb: ["WALKED", "FLOATED"] },
-    par: 1,
+    wordOptions: { time: ["NIGHT", "DAY"], verb: ["WALKED", "FLOATED", "STOMPED"] },
+    par: 2,
     heroStart: { x: 80, y: 380 },
     exit: { x: 860, y: 375, width: 46, height: 65 },
-    heroHint: "Shadow beasts thrive in the dark! Turn on the LIGHT!",
+    heroHint: "Switch to FLOATED to leap the high obstacle, or STOMPED to break the floor!",
     solids: [
-      { x: 0, y: 440, width: 960, height: 160, color: '#332B3A' },
+      { x: 0, y: 440, width: 340, height: 160, color: '#332B3A' },
+      { x: 440, y: 260, width: 80, height: 180, color: '#1B1724' }, // 180px tall barrier
+      { x: 520, y: 440, width: 440, height: 160, color: '#332B3A' },
+      { x: 340, y: 520, width: 220, height: 80, color: '#14111D' }, // Lower tunnel
+      { x: 560, y: 480, width: 60, height: 120, color: '#252033' }, // Step up
       { x: -20, y: 0, width: 20, height: 600, color: '#000' }
     ],
     entities: [
       {
         id: 'beast_1',
         type: 'beast',
-        x: 460,
-        y: 350,
-        width: 75,
+        x: 445,
+        y: 170,
+        width: 70,
         height: 90,
         deathMessage: "GRAAH!"
+      },
+      {
+        id: 'cracked_lvl2',
+        type: 'cracked_floor',
+        x: 340,
+        y: 440,
+        width: 100,
+        height: 24,
+        broken: false
       }
     ]
   },
@@ -88,17 +101,18 @@ const LEVELS = [
     ]
   },
 
-  // ISSUE #4: SUNSET SHADOW RAMP
+  // ISSUE #4: SUNSET SHADOW RAMP (SOLID CAPTION BOX #1)
   {
     id: 4,
     title: "ISSUE #4: REACHING THE HIGH GROUND",
     captionTemplate: "The sun was [time] before the towering wall.\nEd [verb] to the door.",
     words: { time: "DAY", verb: "WALKED" },
-    wordOptions: { time: ["DAY", "SUNSET", "NIGHT"], verb: ["WALKED", "SPRINTED"] },
+    wordOptions: { time: ["DAY", "SUNSET", "NIGHT"], verb: ["WALKED", "FLOATED", "SPRINTED"] },
     par: 1,
+    solidCaptionBox: true, // Specific Level 4 solid caption box!
     heroStart: { x: 80, y: 460 },
     exit: { x: 860, y: 215, width: 46, height: 65 },
-    heroHint: "That wall is 240px tall! At SUNSET, the long shadow becomes a solid ramp!",
+    heroHint: "At SUNSET the shadow forms a ramp, or FLOATED can reach the solid caption box!",
     solids: [
       { x: 0, y: 520, width: 960, height: 80, color: '#332B3A' },
       { x: 560, y: 280, width: 400, height: 240, color: '#1B1724' },
@@ -155,14 +169,11 @@ const LEVELS = [
     exit: { x: 860, y: 475, width: 46, height: 65 },
     heroHint: "STOMPED makes Ed heavy enough to smash through cracked floors!",
     solids: [
-      // Upper floor
       { x: 0, y: 320, width: 340, height: 24, color: '#332B3A' },
       { x: 620, y: 320, width: 340, height: 24, color: '#332B3A' },
-      // Lower ground
       { x: 0, y: 540, width: 960, height: 60, color: '#1E1B29' }
     ],
     entities: [
-      // Cracked floor block in upper tier
       {
         id: 'cracked_1',
         type: 'cracked_floor',
@@ -175,25 +186,23 @@ const LEVELS = [
     ]
   },
 
-  // ISSUE #7: THE FOURTH WALL - PUSHABLE SPEECH BUBBLE
+  // ISSUE #7: THE FOURTH WALL - PUSHABLE SPEECH BUBBLE (SOLID CAPTION BOX #2)
   {
     id: 7,
     title: "ISSUE #7: HEFTING THE WORDS",
     captionTemplate: "A heavy comic block weighed in the center.\nEd [verb] to the door.",
     words: { verb: "WALKED" },
-    wordOptions: { verb: ["WALKED", "SPRINTED", "STOMPED"] },
+    wordOptions: { verb: ["WALKED", "SPRINTED", "FLOATED", "STOMPED"] },
     par: 1,
+    solidCaptionBox: true, // Specific Level 7 solid caption box!
     heroStart: { x: 80, y: 420 },
     exit: { x: 860, y: 275, width: 46, height: 65 },
     heroHint: "Push the physical SPEECH BUBBLE block to make a stepping stone!",
     solids: [
-      // Ground
       { x: 0, y: 480, width: 960, height: 120, color: '#332B3A' },
-      // High right platform
       { x: 740, y: 340, width: 220, height: 140, color: '#1B1724' }
     ],
     entities: [
-      // Pushable speech bubble block
       {
         id: 'bubble_block_1',
         type: 'speech_bubble_block',
@@ -233,37 +242,38 @@ const LEVELS = [
     ]
   },
 
-  // ISSUE #9: THE CAPTION BOX PLATFORM (FOURTH WALL)
+  // ISSUE #9: WALKING ON WORDS
   {
     id: 9,
     title: "ISSUE #9: WALKING ON WORDS",
-    captionTemplate: "The narrator's caption box hovered high above.\nEd [verb] to the door.",
+    captionTemplate: "A high observation bridge hovered above.\nEd [verb] to the door.",
     words: { verb: "WALKED" },
     wordOptions: { verb: ["WALKED", "FLOATED"] },
     par: 1,
-    solidCaptionBox: true, // Narrator caption box becomes a solid platform!
     heroStart: { x: 80, y: 460 },
-    exit: { x: 850, y: 16, width: 46, height: 58 },
-    heroHint: "FLOATED gives you the lunar jump to land ON TOP of the caption box!",
+    exit: { x: 850, y: 195, width: 46, height: 65 },
+    heroHint: "FLOATED gives you the lunar jump to reach high observation decks!",
     solids: [
       { x: 0, y: 520, width: 960, height: 80, color: '#332B3A' },
-      { x: 260, y: 340, width: 140, height: 24, color: '#5A6E85' }
+      { x: 260, y: 340, width: 180, height: 24, color: '#5A6E85' },
+      { x: 560, y: 260, width: 400, height: 260, color: '#332B3A' }
     ],
     entities: []
   },
 
-  // ISSUE #10: BEYOND THE BORDER (FOURTH WALL)
+  // ISSUE #10: BEYOND THE BORDER (SOLID CAPTION BOX #3)
   {
     id: 10,
     title: "ISSUE #10: BREAKING THE FOURTH WALL",
     captionTemplate: "The right border of the comic was [border].\nEd [verb] to the door.",
     words: { border: "SOLID", verb: "WALKED" },
-    wordOptions: { border: ["SOLID", "OPEN"], verb: ["WALKED", "SPRINTED"] },
+    wordOptions: { border: ["SOLID", "OPEN"], verb: ["WALKED", "FLOATED", "SPRINTED"] },
     par: 1,
+    solidCaptionBox: true, // Specific Level 10 solid caption box!
     panelBorderExit: true, // Hero exits by walking right through the panel border!
     heroStart: { x: 80, y: 420 },
     exit: { x: 920, y: 415, width: 40, height: 65 },
-    heroHint: "Open the comic border and walk straight into the next page!",
+    heroHint: "Open the comic border or leap onto the solid caption box!",
     solids: [
       { x: 0, y: 480, width: 960, height: 120, color: '#332B3A' }
     ],
@@ -309,31 +319,35 @@ const LEVELS = [
     }
   },
 
-  // ISSUE #12: THE GRAND FINALE
+  // ISSUE #12: THE GRAND FINALE (TWIST & CLIMAX)
   {
     id: 12,
     title: "FINALE: RETCON - THE LAST PAGE",
-    captionTemplate: "The all-powerful Narrator revealed himself as a [narrator].\nEd [verb] to the door.",
+    captionTemplate: "The narrator was [narrator].\nEd [verb] to the door.",
     words: { narrator: "VILLAIN", verb: "WALKED" },
-    wordOptions: { narrator: ["VILLAIN", "HERO"], verb: ["WALKED", "SPRINTED", "STOMPED"] },
+    wordOptions: { narrator: ["VILLAIN", "HERO"], verb: ["WALKED", "SPRINTED", "FLOATED"] },
     par: 1,
     heroStart: { x: 80, y: 420 },
     exit: { x: 860, y: 415, width: 50, height: 65 },
-    heroHint: "Rewrite the Narrator himself from VILLAIN to HERO!",
+    heroHint: "The Narrator locked your verbs! Rewrite HIM from VILLAIN to HERO!",
     solids: [
       { x: 0, y: 480, width: 960, height: 120, color: '#332B3A' }
     ],
     entities: [
       {
         id: 'narrator_boss',
-        type: 'guard',
+        type: 'narrator_boss',
         x: 620,
-        y: 360,
-        width: 70,
-        height: 120,
-        deathMessage: "The Narrator rewrote you out of existence!"
+        y: 350,
+        width: 80,
+        height: 130,
+        deathMessage: "The villainous Narrator erased you!"
       }
-    ]
+    ],
+    onInit: (engine) => {
+      // Narrator locks verbs at start!
+      engine.lockWord('verb', 999);
+    }
   }
 ];
 

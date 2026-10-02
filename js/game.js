@@ -64,23 +64,33 @@ class RetconGame {
   }
 
   loadStars() {
+    this.savedStars = {};
+    this.savedRetries = {};
     try {
-      const data = localStorage.getItem('retcon_stars');
+      const data = localStorage.getItem('retcon_stars_v2');
       if (data) {
-        this.savedStars = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        this.savedStars = parsed.stars || {};
+        this.savedRetries = parsed.retries || {};
       }
     } catch (e) {
       console.warn("Storage access restricted", e);
     }
   }
 
-  saveStars(levelId, stars) {
+  saveStars(levelId, stars, retries = 0) {
     try {
       const current = this.savedStars[levelId] || 0;
       if (stars > current) {
         this.savedStars[levelId] = stars;
-        localStorage.setItem('retcon_stars', JSON.stringify(this.savedStars));
       }
+      if (this.savedRetries[levelId] === undefined || retries < this.savedRetries[levelId]) {
+        this.savedRetries[levelId] = retries;
+      }
+      localStorage.setItem('retcon_stars_v2', JSON.stringify({
+        stars: this.savedStars,
+        retries: this.savedRetries
+      }));
     } catch (e) {
       console.warn("Storage save failed", e);
     }
@@ -294,6 +304,15 @@ class RetconGame {
       if (bridge === 'STONE') this.hero.say("Sturdy stone!");
       else if (bridge === 'ICE') this.hero.say("Icy bridge... watch out for heat!");
       else if (bridge === 'BROKEN') this.hero.say("Bridge vanished!");
+    } else if (changedWordKey === 'narrator') {
+      if (this.ruleEngine.words.narrator === 'HERO') {
+        this.hero.say("The Narrator is helping us! The path is open!");
+        delete this.ruleEngine.lockedWords['verb'];
+        this.bossProjectiles = [];
+        if (this.sounds) this.sounds.playWin();
+      } else {
+        this.hero.say("The villainous Narrator is attacking!");
+      }
     }
   }
 
@@ -348,7 +367,7 @@ class RetconGame {
     let stars = 1;
     if (this.levelEdits <= par) stars = 3;
     else if (this.levelEdits <= par + 2) stars = 2;
-    this.saveStars(this.currentLevel.id, stars);
+    this.saveStars(this.currentLevel.id, stars, this.deaths);
 
     if (this.narrator) {
       this.narrator.onLevelComplete();
@@ -419,9 +438,10 @@ class RetconGame {
       if (this.currentLevel.solidCaptionBox) {
         activeSolids.push({
           x: 40,
-          y: 14,
+          y: 64,
           width: 880,
-          height: 76
+          height: 76,
+          isCaptionBox: true
         });
       }
 
@@ -488,6 +508,49 @@ class RetconGame {
       const activeVerb = this.ruleEngine.words.verb || 'WALKED';
       this.hero.update(dt, this.input, activeSolids, activeClimbables, activeLethals, activeSlopes, activeVerb, activePushables);
 
+      // Level 12 Final Boss Logic
+      if (this.currentLevel.id === 12) {
+        const isVillain = this.ruleEngine.words.narrator === 'VILLAIN';
+        if (isVillain) {
+          this.bossAttackTimer = (this.bossAttackTimer || 0) + dt;
+          if (this.bossAttackTimer >= 2.2) {
+            this.bossAttackTimer = 0;
+            this.bossProjectiles = this.bossProjectiles || [];
+            this.bossProjectiles.push({
+              x: 600,
+              y: 440,
+              vx: -260,
+              width: 28,
+              height: 28
+            });
+            if (this.sounds) this.sounds.playTwist();
+            if (this.fx) this.fx.addPopup("INK BOLT!", 600, 420, { color: '#FF0055', scale: 1.0 });
+          }
+        } else {
+          this.bossProjectiles = [];
+        }
+
+        // Update boss projectiles
+        if (this.bossProjectiles && this.bossProjectiles.length > 0) {
+          for (let i = this.bossProjectiles.length - 1; i >= 0; i--) {
+            const p = this.bossProjectiles[i];
+            p.x += p.vx * dt;
+            if (this.fx && Math.random() < 0.4) {
+              this.fx.emit(p.x + 14, p.y + 14, 1, 'spark', '#FF0077');
+            }
+            if (!this.hero.isDead && this.hero.checkOverlap(
+              { x: this.hero.x, y: this.hero.y, width: this.hero.width, height: this.hero.height },
+              p
+            )) {
+              this.hero.die("Struck by Narrator's evil ink!");
+            }
+            if (p.x < -40) {
+              this.bossProjectiles.splice(i, 1);
+            }
+          }
+        }
+      }
+
       // Handle hero death respawn delay
       if (this.hero.isDead) {
         this.respawnTimer += dt;
@@ -505,7 +568,9 @@ class RetconGame {
 
       // Check Standard Level Exit Door
       const exitBox = this.currentLevel.exit;
+      const canExit = (this.currentLevel.id !== 12) || (this.ruleEngine.words.narrator === 'HERO');
       if (
+        canExit &&
         !this.hero.isDead &&
         exitBox &&
         this.hero.checkOverlap(
@@ -543,6 +608,25 @@ class RetconGame {
         this.fx,
         this.mousePos
       );
+
+      // Render boss projectiles
+      if (this.bossProjectiles && this.bossProjectiles.length > 0) {
+        for (const p of this.bossProjectiles) {
+          ctx.save();
+          ctx.fillStyle = '#7209B7';
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#FF0055';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(p.x + 14, p.y + 14, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#FFE500';
+          ctx.fillRect(p.x + 9, p.y + 9, 10, 10);
+          ctx.restore();
+        }
+      }
 
       if (this.state === 'PAGE_TURN') {
         this.renderPageTurnEffect(ctx);
@@ -715,7 +799,12 @@ class RetconGame {
       ctx.fillStyle = '#FFB703';
       ctx.font = '900 16px sans-serif';
       let starStr = starCount === 3 ? "★★★" : (starCount === 2 ? "★★☆" : (starCount === 1 ? "★☆☆" : "☆☆☆"));
-      ctx.fillText(starStr, bx + 52, by + 86);
+      ctx.fillText(starStr, bx + 52, by + 82);
+
+      const bestRetries = this.savedRetries[lvl.id];
+      ctx.fillStyle = '#457B9D';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(bestRetries !== undefined ? `BEST: ${bestRetries} TRIES` : `PAR: ${lvl.par || 1}`, bx + 52, by + 97);
     }
 
     // Back Button

@@ -222,7 +222,24 @@ class RuleEngine {
         }
         break;
 
+      case 'narrator_boss':
       case 'guard':
+        if (this.words.narrator) {
+          if (this.words.narrator === 'HERO') {
+            result.solid = false;
+            result.lethal = false;
+            result.visible = true;
+            result.color = '#00F0FF';
+            result.label = 'HEROIC NARRATOR';
+          } else {
+            result.solid = true;
+            result.lethal = true;
+            result.visible = true;
+            result.color = '#7209B7';
+            result.label = 'EVIL NARRATOR';
+          }
+          break;
+        }
         if (guard === 'ASLEEP') {
           result.solid = false; // Hero can walk past
           result.lethal = false;

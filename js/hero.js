@@ -88,38 +88,43 @@ class Hero {
     this.animTime += dt;
 
     // Apply Hero Verb Modifiers live
+    this.currentVerb = verb;
     if (verb === 'FLOATED') {
       this.maxSpeed = 260;
-      this.accel = 1200;
-      this.friction = 1400;
-      this.jumpForce = -420;
-      this.baseGravity = 1350 * 0.35; // 472.5 px/s^2 (low grav float)
+      this.accel = 1100;
+      this.friction = 1200;
+      this.jumpForce = -640; // High jump height
+      this.baseGravity = 1350 * 0.4; // Low gravity (x0.4 = 540 px/s^2)
       this.fallGravityMultiplier = 1.0;
+      this.maxFallSpeed = 220; // Slow fall speed
       this.isHeavy = false;
     } else if (verb === 'STOMPED') {
       this.maxSpeed = 220;
       this.accel = 2200;
       this.friction = 2600;
-      this.jumpForce = -440;
-      this.baseGravity = 1350 * 1.6; // 2160 px/s^2 (heavy)
+      this.jumpForce = -420; // Low jump
+      this.baseGravity = 1350 * 1.8; // Heavy gravity (x1.8 = 2430 px/s^2)
       this.fallGravityMultiplier = 1.8;
+      this.maxFallSpeed = 900;
       this.isHeavy = true;
     } else if (verb === 'SPRINTED') {
-      this.maxSpeed = 480; // 1.6x speed
-      this.accel = 3200;
-      this.friction = 700; // low friction / slippery turn
+      this.maxSpeed = 510; // Fast max speed (x1.7)
+      this.accel = 3000;
+      this.friction = 600; // Low friction / very slippery turn
       this.jumpForce = -560;
       this.baseGravity = 1350;
       this.fallGravityMultiplier = 1.6;
+      this.maxFallSpeed = 750;
       this.isHeavy = false;
     } else {
-      // WALKED (Normal)
+      // WALKED (Normal baseline)
       this.maxSpeed = 300;
       this.accel = 2400;
       this.friction = 2000;
       this.jumpForce = -560;
       this.baseGravity = 1350;
       this.fallGravityMultiplier = 1.6;
+      this.maxFallSpeed = 750;
       this.isHeavy = false;
     }
 
@@ -327,7 +332,7 @@ class Hero {
           this.isOnSlope = true;
 
           if (!this.wasGrounded) {
-            this.triggerLandSquash();
+            this.triggerLandSquash(verb);
           }
         }
       }
@@ -343,7 +348,7 @@ class Hero {
           this.isGrounded = true;
 
           if (!this.wasGrounded && !this.isOnSlope) {
-            this.triggerLandSquash();
+            this.triggerLandSquash(verb);
           }
 
           // If hero is heavy (STOMPED), break cracked floors!
@@ -390,13 +395,37 @@ class Hero {
     }
   }
 
-  triggerLandSquash() {
+  triggerLandSquash(verb = 'WALKED') {
     this.landSquashTimer = 0.10;
     this.scaleX = 1.20;
     this.scaleY = 0.80;
+
+    if (verb === 'FLOATED') {
+      // FLOATED: Hero bounces slightly on land with soft dust puff
+      this.vy = -160;
+      this.isGrounded = false;
+      this.scaleX = 0.90;
+      this.scaleY = 1.15;
+      if (window.sounds) window.sounds.playJump();
+      if (window.fx) {
+        window.fx.emit(this.x + this.width / 2, this.y + this.height, 8, 'dust', '#C8E6C9');
+      }
+      return;
+    }
+
+    if (verb === 'STOMPED') {
+      // STOMPED: Heavy landing thud and dust explosion
+      if (window.sounds) window.sounds.playThud();
+      if (window.fx) {
+        window.fx.triggerShake(6);
+        window.fx.emit(this.x + this.width / 2, this.y + this.height, 12, 'dust', '#8D7B68');
+      }
+      return;
+    }
+
+    // Normal landing
     if (window.sounds) window.sounds.playLand();
     if (window.fx) {
-      // Dust ring on landing
       for (let i = -1; i <= 1; i += 2) {
         window.fx.emit(this.x + this.width / 2 + i * 8, this.y + this.height, 4, 'dust', '#BBB');
       }
