@@ -200,13 +200,14 @@ class RetconGame {
         this.canvas.style.cursor = (onPlay || onSelect) ? 'pointer' : 'default';
       } else if (this.state === 'LEVEL_SELECT') {
         let onCard = false;
-        const startX = 110, startY = 140;
+        const startX = 82, startY = 90;
+        const cardW = 186, cardH = 112, gapX = 20, gapY = 16;
         for (let i = 0; i < LEVELS.length; i++) {
-          const bx = startX + (i % 6) * 125;
-          const by = startY + Math.floor(i / 6) * 140;
-          if (x >= bx && x <= bx + 105 && y >= by && y <= by + 100) { onCard = true; break; }
+          const bx = startX + (i % 4) * (cardW + gapX);
+          const by = startY + Math.floor(i / 4) * (cardH + gapY);
+          if (x >= bx && x <= bx + cardW && y >= by && y <= by + cardH) { onCard = true; break; }
         }
-        const onBack = x >= 400 && x <= 560 && y >= 500 && y <= 550;
+        const onBack = x >= 390 && x <= 570 && y >= 485 && y <= 540;
         this.canvas.style.cursor = (onCard || onBack) ? 'pointer' : 'default';
       }
     });
@@ -260,9 +261,9 @@ class RetconGame {
     if (this.state === 'LEVEL_SELECT') {
       // 12 Level Cards (4 columns x 3 rows)
       const startX = 82;
-      const startY = 95;
+      const startY = 90;
       const cardW = 186;
-      const cardH = 108;
+      const cardH = 112;
       const gapX = 20;
       const gapY = 16;
 
@@ -278,8 +279,9 @@ class RetconGame {
           return;
         }
       }
-      // BACK button
-      if (x >= 390 && x <= 570 && y >= 490 && y <= 545) {
+
+      // BACK Button
+      if (x >= 390 && x <= 570 && y >= 485 && y <= 540) {
         if (this.sounds) this.sounds.playButtonThunk();
         this.state = 'TITLE';
         return;
@@ -382,8 +384,8 @@ class RetconGame {
 
     this.ruleEngine.setWords(levelData.words, levelData.wordOptions);
 
-    // Level 9 first-time entry: trigger comic flashback panel popup!
-    if (levelData.id === 9 && !this.seenLevel9Flashback) {
+    // Lock Level first-time entry: trigger comic flashback panel popup!
+    if ((levelData.id === 9 || levelData.id === 11) && levelData.onInit && !this.seenLevel9Flashback) {
       this.activeFlashback = {
         active: true,
         timer: 0,
@@ -921,26 +923,11 @@ class RetconGame {
 
     // 12 Issue Covers Grid (4 columns x 3 rows)
     const startX = 82;
-    const startY = 95;
-    const cardW = 186;
-    const cardH = 108;
+    const startY = 90;
+    const cardW = 186; // Exact card width in pixels: 186px
+    const cardH = 112; // Exact card height in pixels: 112px
     const gapX = 20;
     const gapY = 16;
-
-    const THEME_TAGS = [
-      'BROKEN BRIDGE',
-      'NIGHT vs DAY',
-      'ICE vs SUNSET',
-      'SHADOW RAMP',
-      'FORTRESS GUARD',
-      'HEAVY STOMP',
-      'SPEECH BUBBLE',
-      'RAIN & VINES',
-      'HIGH VANTAGE',
-      'PANEL BREACH',
-      'NARRATOR LOCK',
-      'THE GRAND FINALE'
-    ];
 
     for (let i = 0; i < LEVELS.length; i++) {
       const col = i % 4;
@@ -988,12 +975,13 @@ class RetconGame {
       ctx.roundRect(bx, by + liftY, cardW, cardH, 8);
       ctx.stroke();
 
-      // Top-Left Badge: ISSUE #X (Primary Red #ff3860)
-      const badgeW = 76;
-      const badgeH = 22;
+      // Top-Left Badge: ISSUE #X or FINALE (Primary Red #ff3860)
+      const isFinale = lvl.id === 12;
+      const badgeW = isFinale ? 80 : 74;
+      const badgeH = 20;
       ctx.fillStyle = THEME.colors.primary;
       ctx.beginPath();
-      ctx.roundRect(bx + 10, by + liftY + 10, badgeW, badgeH, 4);
+      ctx.roundRect(bx + 10, by + liftY + 8, badgeW, badgeH, 4);
       ctx.fill();
 
       ctx.lineWidth = 2;
@@ -1005,28 +993,72 @@ class RetconGame {
       THEME.applyLetterSpacing(ctx, '1px');
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`ISSUE #${lvl.id}`, bx + 10 + badgeW / 2, by + liftY + 10 + badgeH / 2);
+      ctx.fillText(isFinale ? 'FINALE' : `ISSUE #${lvl.id}`, bx + 10 + badgeW / 2, by + liftY + 8 + badgeH / 2);
 
-      // 1-line preview of theme
+      // Best retries / par label in top right
       ctx.fillStyle = THEME.colors.textDark;
-      ctx.font = `900 12px ${THEME.typography.bodyFont}`;
-      THEME.applyLetterSpacing(ctx, '1.1px');
-      ctx.textAlign = 'left';
-      ctx.fillText(THEME_TAGS[i] || 'PUZZLE', bx + 12, by + liftY + 54);
+      ctx.font = `bold 11px ${THEME.typography.bodyFont}`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      const labelText = bestRetries !== undefined ? `BEST: ${bestRetries}` : `PAR: ${lvl.par || 1}`;
+      ctx.fillText(labelText, bx + cardW - 10, by + liftY + 18);
 
-      // Stars earned (0 to 3) drawn as comic star icons
+      // Full Level Title: Clean 2-line wrap with auto-shrinking font (min 12px, max 18px)
+      const fullTitle = lvl.title.replace(/^ISSUE #\d+:\s*/, '').replace(/^FINALE:\s*/, '').trim();
+      const maxTextW = cardW - 24; // 162px usable text width inside card
+
+      let titleLines = [];
+      let titleFontSize = 15;
+
+      // Check if short enough to fit cleanly on 1 line at 15px
+      ctx.font = `900 15px ${THEME.typography.bodyFont}`;
+      THEME.applyLetterSpacing(ctx, '0.8px');
+      if (ctx.measureText(fullTitle).width <= maxTextW) {
+        titleLines = [fullTitle];
+        titleFontSize = 15;
+      } else {
+        // Natural 2-line balanced word break
+        const words = fullTitle.split(' ');
+        let bestBreak = Math.ceil(words.length / 2);
+        if (words.length === 3) bestBreak = 2; // e.g. "THE BROKEN" / "CROSSING"
+        else if (words.length === 4) bestBreak = 2; // e.g. "CREATURES OF" / "THE DARK"
+
+        let line1 = words.slice(0, bestBreak).join(' ');
+        let line2 = words.slice(bestBreak).join(' ');
+
+        // Auto-shrink font size between 12px and 16px to guarantee exact fit
+        titleFontSize = 15;
+        for (let sz = 16; sz >= 12; sz -= 0.5) {
+          ctx.font = `900 ${sz}px ${THEME.typography.bodyFont}`;
+          THEME.applyLetterSpacing(ctx, '0.8px');
+          if (ctx.measureText(line1).width <= maxTextW && ctx.measureText(line2).width <= maxTextW) {
+            titleFontSize = sz;
+            break;
+          }
+        }
+        titleLines = [line1, line2];
+      }
+
+      // Draw title text
+      ctx.fillStyle = THEME.colors.textDark;
+      ctx.font = `900 ${titleFontSize}px ${THEME.typography.bodyFont}`;
+      THEME.applyLetterSpacing(ctx, '0.8px');
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+
+      if (titleLines.length === 1) {
+        ctx.fillText(titleLines[0], bx + 12, by + liftY + 54);
+      } else {
+        ctx.fillText(titleLines[0], bx + 12, by + liftY + 45);
+        ctx.fillText(titleLines[1], bx + 12, by + liftY + 63);
+      }
+
+      // Stars earned (0 to 3) drawn as comic star icons at bottom
       const starStartX = bx + 14;
-      const starY = by + liftY + 84;
+      const starY = by + liftY + 92;
       for (let s = 0; s < 3; s++) {
         THEME.drawStar(ctx, starStartX + s * 22, starY, 9, s < starCount);
       }
-
-      // Best retries / par label
-      ctx.fillStyle = THEME.colors.textDark;
-      ctx.font = `bold 10px ${THEME.typography.bodyFont}`;
-      ctx.textAlign = 'right';
-      const labelText = bestRetries !== undefined ? `BEST: ${bestRetries}` : `PAR: ${lvl.par || 1}`;
-      ctx.fillText(labelText, bx + cardW - 12, starY);
     }
 
     // BACK Button (Primary Accent #ff3860)

@@ -242,52 +242,23 @@ const LEVELS = [
     ]
   },
 
-  // ISSUE #9: EDITING PERMISSION DENIED (LEVEL 9 REDESIGN)
+  // ISSUE #9: WALKING ON WORDS
   {
     id: 9,
-    title: "ISSUE #9: EDITING PERMISSION DENIED",
-    captionTemplate: "The sky was [time] and the bridge was [bridge].\nEd [verb] to the door.",
-    words: { time: "NIGHT", bridge: "BROKEN", verb: "WALKED" },
-    wordOptions: { time: ["NIGHT", "DAY"], bridge: ["BROKEN", "STONE"], verb: ["WALKED", "FLOATED"] },
-    par: 2,
-    heroStart: { x: 70, y: 420 },
-    exit: { x: 860, y: 415, width: 46, height: 65 },
-    heroHint: "The bridge is locked! Switch to DAY and FLOATED to cross the beast's chasm first!",
+    title: "ISSUE #9: WALKING ON WORDS",
+    captionTemplate: "A high observation bridge hovered above.\nEd [verb] to the door.",
+    words: { verb: "WALKED" },
+    wordOptions: { verb: ["WALKED", "FLOATED"] },
+    par: 1,
+    heroStart: { x: 80, y: 460 },
+    exit: { x: 850, y: 195, width: 46, height: 65 },
+    heroHint: "FLOATED gives you the lunar jump to reach high observation decks!",
     solids: [
-      // Left starting platform: x: 0 to 250
-      { x: 0, y: 480, width: 250, height: 120, color: '#332B3A' },
-      // Middle staging island: x: 380 to 570 (safe haven while lock drains)
-      { x: 380, y: 480, width: 190, height: 120, color: '#332B3A' },
-      // Right exit platform: x: 740 to 960
-      { x: 740, y: 480, width: 220, height: 120, color: '#332B3A' }
+      { x: 0, y: 520, width: 960, height: 80, color: '#332B3A' },
+      { x: 260, y: 340, width: 180, height: 24, color: '#5A6E85' },
+      { x: 560, y: 260, width: 400, height: 260, color: '#332B3A' }
     ],
-    entities: [
-      // Section 1: Gap from 250 to 380 (width 130).
-      // Shadow beast blocks the dark gap.
-      // Solvable while locked: Player switches time to DAY (dissolves beast) and verb to FLOATED to leap across to the middle platform!
-      {
-        id: 'beast_9',
-        type: 'beast',
-        x: 280,
-        y: 395,
-        width: 60,
-        height: 85,
-        deathMessage: "GRAAH! The shadow beast strikes in darkness!"
-      },
-      // Section 2: Gap from 570 to 740 (width 170).
-      // Bridge is locked for 5.0 seconds. Once unlocked, player changes BROKEN to STONE to reach the exit!
-      {
-        id: 'bridge_9',
-        type: 'bridge',
-        x: 570,
-        y: 480,
-        width: 170,
-        height: 28
-      }
-    ],
-    onInit: (engine) => {
-      engine.lockWord('bridge', 5.0);
-    }
+    entities: []
   },
 
   // ISSUE #10: BEYOND THE BORDER (SOLID CAPTION BOX #3)
@@ -309,23 +280,52 @@ const LEVELS = [
     entities: []
   },
 
-  // ISSUE #11: WALKING ON WORDS
+  // ISSUE #11: EDITING PERMISSION DENIED (NARRATOR 5-SECOND LOCK)
   {
     id: 11,
-    title: "ISSUE #11: WALKING ON WORDS",
-    captionTemplate: "A high observation bridge hovered above.\nEd [verb] to the door.",
-    words: { verb: "WALKED" },
-    wordOptions: { verb: ["WALKED", "FLOATED"] },
-    par: 1,
-    heroStart: { x: 80, y: 460 },
-    exit: { x: 850, y: 195, width: 46, height: 65 },
-    heroHint: "FLOATED gives you the lunar jump to reach high observation decks!",
+    title: "ISSUE #11: EDITING PERMISSION DENIED",
+    captionTemplate: "The sky was [time] and the bridge was [bridge].\nEd [verb] to the door.",
+    words: { time: "NIGHT", bridge: "BROKEN", verb: "WALKED" },
+    wordOptions: { time: ["NIGHT", "DAY"], bridge: ["BROKEN", "STONE"], verb: ["WALKED", "FLOATED"] },
+    par: 2,
+    heroStart: { x: 70, y: 420 },
+    exit: { x: 860, y: 415, width: 46, height: 65 },
+    heroHint: "The bridge is locked! Switch to DAY and FLOATED to cross the beast's chasm first!",
     solids: [
-      { x: 0, y: 520, width: 960, height: 80, color: '#332B3A' },
-      { x: 260, y: 340, width: 180, height: 24, color: '#5A6E85' },
-      { x: 560, y: 260, width: 400, height: 260, color: '#332B3A' }
+      // Left starting platform: x: 0 to 250
+      { x: 0, y: 480, width: 250, height: 120, color: '#332B3A' },
+      // Middle staging island: x: 380 to 570 (safe haven while lock drains)
+      { x: 380, y: 480, width: 190, height: 120, color: '#332B3A' },
+      // Right exit platform: x: 740 to 960
+      { x: 740, y: 480, width: 220, height: 120, color: '#332B3A' }
     ],
-    entities: []
+    entities: [
+      // Section 1: Gap from 250 to 380 (width 130).
+      // Shadow beast blocks the dark gap.
+      // Solvable while locked: Player switches time to DAY (dissolves beast) and verb to FLOATED to leap across to the middle platform!
+      {
+        id: 'beast_11',
+        type: 'beast',
+        x: 280,
+        y: 395,
+        width: 60,
+        height: 85,
+        deathMessage: "GRAAH! The shadow beast strikes in darkness!"
+      },
+      // Section 2: Gap from 570 to 740 (width 170).
+      // Bridge is locked for 5.0 seconds. Once unlocked, player changes BROKEN to STONE to reach the exit!
+      {
+        id: 'bridge_11',
+        type: 'bridge',
+        x: 570,
+        y: 480,
+        width: 170,
+        height: 28
+      }
+    ],
+    onInit: (engine) => {
+      engine.lockWord('bridge', 5.0);
+    }
   },
 
   // ISSUE #12: THE GRAND FINALE (TWIST & CLIMAX)

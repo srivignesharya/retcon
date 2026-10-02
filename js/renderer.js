@@ -103,32 +103,32 @@ class ComicRenderer {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, this.width, this.height);
 
-      // Comic Sun at left-middle (x: 250, y: 170)
+      // Comic Sun positioned safely below narrator box & subtitle (x: 190, y: 250)
       ctx.fillStyle = '#FFDD00';
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(250, 170, 44, 0, Math.PI * 2);
+      ctx.arc(190, 250, 42, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       ctx.save();
-      ctx.translate(250, 170);
+      ctx.translate(190, 250);
       for (let i = 0; i < 8; i++) {
         ctx.rotate((Math.PI * 2) / 8);
         ctx.fillStyle = '#FFB703';
         ctx.beginPath();
-        ctx.moveTo(52, -7);
-        ctx.lineTo(72, 0);
-        ctx.lineTo(52, 7);
+        ctx.moveTo(50, -7);
+        ctx.lineTo(68, 0);
+        ctx.lineTo(50, 7);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
       }
       ctx.restore();
 
-      this.drawCloud(ctx, (130 - this.cloudOffset * 0.4 + this.width) % this.width, 195, 1.0);
-      this.drawCloud(ctx, (430 - this.cloudOffset * 0.2 + this.width) % this.width, 180, 0.85);
+      this.drawCloud(ctx, (130 - this.cloudOffset * 0.4 + this.width) % this.width, 210, 1.0);
+      this.drawCloud(ctx, (430 - this.cloudOffset * 0.2 + this.width) % this.width, 240, 0.85);
 
     } else if (time === 'SUNSET') {
       const grad = ctx.createLinearGradient(0, 0, 0, 500);
