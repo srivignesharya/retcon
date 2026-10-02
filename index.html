@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RETCON - Comic Puzzle Platformer</title>
+  <meta name="description" content="RETCON: A comic-book puzzle platformer. Rewrite reality by editing the narrative. Developed for Game Jam by Team APEX.">
+  <link rel="icon" href="data:,">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #12131C;
+      background-image: 
+        radial-gradient(circle at 50% 50%, #1e2133 0%, #0d0e15 100%);
+      font-family: 'Impact', 'Arial Black', -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 1.5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+
+    /* Fixed 960x600 aspect ratio container scaled to window */
+    #canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: calc(100vh * (960 / 600));
+      max-height: calc(100vw * (600 / 960));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+    }
+
+    /* Touch Controls Overlay for Mobile / Touch screens */
+    #touch-controls {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      padding: 0 30px;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .touch-btn {
+      pointer-events: auto;
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 230, 0, 0.85);
+      border: 3px solid #000;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: 900;
+      color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 3px 3px 0 #000;
+      touch-action: manipulation;
+    }
+
+    .touch-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #000;
+    }
+
+    @media (pointer: coarse) {
+      #touch-controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <div id="canvas-wrapper">
+      <canvas id="gameCanvas" width="960" height="600"></canvas>
+    </div>
+
+    <!-- On-screen touch controls for tablet/mobile devices -->
+    <div id="touch-controls">
+      <div style="display: flex; gap: 14px;">
+        <button class="touch-btn" id="btn-left">◀</button>
+        <button class="touch-btn" id="btn-right">▶</button>
+      </div>
+      <button class="touch-btn" id="btn-jump">▲</button>
+    </div>
+  </div>
+
+  <!-- Local Game Scripts (No CDN, No Bundler, Offline Compatible) -->
+  <script src="js/audio.js"></script>
+  <script src="js/narrator.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/hero.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+
+  <!-- Touch button wiring -->
+  <script>
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnJump = document.getElementById('btn-jump');
+
+    if (btnLeft && btnRight && btnJump) {
+      const setKey = (code, pressed) => {
+        window.dispatchEvent(new KeyboardEvent(pressed ? 'keydown' : 'keyup', { code }));
+      };
+
+      btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); setKey('KeyA', true); });
+      btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); setKey('KeyA', false); });
+
+      btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); setKey('KeyD', true); });
+      btnRight.addEventListener('touchend', (e) => { e.preventDefault(); setKey('KeyD', false); });
+
+      btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); setKey('Space', true); });
+      btnJump.addEventListener('touchend', (e) => { e.preventDefault(); setKey('Space', false); });
+    }
+  </script>
+</body>
+</html>
