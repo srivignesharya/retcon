@@ -67,24 +67,24 @@ class RuleEngine {
         if (window.sounds) window.sounds.playJump();
         if (window.fx) {
           window.fx.triggerShake(5);
-          window.fx.addPopup("WHOOSH!", 480, 80, { color: '#00F0FF', scale: 1.2 });
+          window.fx.addPopup("WHOOSH!", 480, 80, { color: (window.THEME ? window.THEME.colors.info : '#3a86ff'), scale: 1.2 });
         }
       } else if (newWord === 'STOMPED') {
         if (window.sounds) window.sounds.playThud();
         if (window.fx) {
           window.fx.triggerShake(9);
-          window.fx.addPopup("THUD!", 480, 80, { color: '#FF7B00', scale: 1.3 });
+          window.fx.addPopup("THUD!", 480, 80, { color: (window.THEME ? window.THEME.colors.primary : '#ff3860'), scale: 1.3 });
         }
       } else if (newWord === 'SPRINTED') {
         if (window.sounds) window.sounds.playRetcon();
         if (window.fx) {
           window.fx.triggerShake(6);
-          window.fx.addPopup("ZOOM!", 480, 80, { color: '#FFE600', scale: 1.2 });
+          window.fx.addPopup("ZOOM!", 480, 80, { color: (window.THEME ? window.THEME.colors.secondary : '#ffd400'), scale: 1.2 });
         }
       } else {
         if (window.sounds) window.sounds.playWordClick();
         if (window.fx) {
-          window.fx.addPopup("STRIDE!", 480, 80, { color: '#70E000', scale: 1.1 });
+          window.fx.addPopup("STRIDE!", 480, 80, { color: (window.THEME ? window.THEME.colors.success : '#2ec4b6'), scale: 1.1 });
         }
       }
     } else {
@@ -96,7 +96,7 @@ class RuleEngine {
         const onomats = ['RETCON!', 'POW!', 'ZAP!', 'WHOOSH!', 'BAM!', 'TWIST!'];
         const chosen = onomats[Math.floor(Math.random() * onomats.length)];
         window.fx.addPopup(chosen, 480 + (Math.random() - 0.5) * 80, 90, {
-          color: '#FFEA00',
+          color: (window.THEME ? window.THEME.colors.secondary : '#ffd400'),
           scale: 1.1
         });
       }

@@ -308,6 +308,25 @@ class SoundSystem {
       osc.stop(t + 0.3);
     } catch (e) {}
   }
+
+  // Button thunk press sound
+  playButtonThunk() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(160, t);
+      osc.frequency.exponentialRampToValueAtTime(55, t + 0.08);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.08);
+    } catch (e) {}
+  }
 }
 
 window.sounds = new SoundSystem();

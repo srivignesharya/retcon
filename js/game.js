@@ -216,51 +216,81 @@ class RetconGame {
 
   handleClick(x, y) {
     if (this.state === 'TITLE') {
-      if (x >= 360 && x <= 600 && y >= 370 && y <= 430) {
-        if (this.sounds) this.sounds.playWordClick();
+      // START READING (PLAY) button
+      if (x >= 360 && x <= 600 && y >= 280 && y <= 340) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.loadLevel(0);
         this.state = 'PLAYING';
-      } else if (x >= 360 && x <= 600 && y >= 450 && y <= 500) {
-        if (this.sounds) this.sounds.playWordClick();
+        return;
+      }
+      // ISSUE ARCHIVE (LEVEL SELECT) button
+      if (x >= 360 && x <= 600 && y >= 365 && y <= 425) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.state = 'LEVEL_SELECT';
+        return;
       }
       return;
     }
 
     if (this.state === 'LEVEL_SELECT') {
-      const startX = 110;
-      const startY = 140;
+      // 12 Level Cards (4 columns x 3 rows)
+      const startX = 82;
+      const startY = 95;
+      const cardW = 186;
+      const cardH = 108;
+      const gapX = 20;
+      const gapY = 16;
+
       for (let i = 0; i < LEVELS.length; i++) {
-        const col = i % 6;
-        const row = Math.floor(i / 6);
-        const bx = startX + col * 125;
-        const by = startY + row * 140;
-        if (x >= bx && x <= bx + 105 && y >= by && y <= by + 100) {
-          if (this.sounds) this.sounds.playWordClick();
+        const col = i % 4;
+        const row = Math.floor(i / 4);
+        const bx = startX + col * (cardW + gapX);
+        const by = startY + row * (cardH + gapY);
+        if (x >= bx && x <= bx + cardW && y >= by && y <= by + cardH) {
+          if (this.sounds) this.sounds.playButtonThunk();
           this.loadLevel(i);
           this.state = 'PLAYING';
           return;
         }
       }
-      if (x >= 400 && x <= 560 && y >= 500 && y <= 550) {
+      // BACK button
+      if (x >= 390 && x <= 570 && y >= 490 && y <= 545) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.state = 'TITLE';
+        return;
       }
       return;
     }
 
     if (this.state === 'PAUSED') {
-      if (x >= 380 && x <= 580 && y >= 250 && y <= 300) {
+      // RESUME
+      if (x >= 340 && x <= 620 && y >= 200 && y <= 255) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.state = 'PLAYING';
-      } else if (x >= 380 && x <= 580 && y >= 320 && y <= 370) {
+        return;
+      }
+      // LEVEL SELECT
+      if (x >= 340 && x <= 620 && y >= 275 && y <= 330) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.state = 'LEVEL_SELECT';
+        return;
+      }
+      // RESTART
+      if (x >= 340 && x <= 620 && y >= 350 && y <= 405) {
+        if (this.sounds) this.sounds.playButtonThunk();
+        this.restartLevel();
+        this.state = 'PLAYING';
+        return;
       }
       return;
     }
 
     if (this.state === 'WIN') {
-      if (x >= 360 && x <= 600 && y >= 470 && y <= 530) {
+      if (x >= 360 && x <= 600 && y >= 445 && y <= 515) {
+        if (this.sounds) this.sounds.playButtonThunk();
         this.loadLevel(0);
         this.state = 'PLAYING';
+        return;
       }
       return;
     }
@@ -655,264 +685,498 @@ class RetconGame {
   }
 
   renderTitleScreen(ctx) {
-    ctx.fillStyle = '#FFE500';
+    THEME.init(ctx);
+
+    // Warm cream paper background (#fdf6e3)
+    ctx.fillStyle = THEME.colors.paper;
     ctx.fillRect(0, 0, 960, 600);
 
-    ctx.save();
-    ctx.translate(480, 240);
-    for (let i = 0; i < 16; i++) {
-      ctx.rotate((Math.PI * 2) / 16);
-      ctx.fillStyle = i % 2 === 0 ? '#FFDD00' : '#FFC300';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(600, -50);
-      ctx.lineTo(600, 50);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.restore();
+    // Modern angled comic action lines (NOT a dated full sunburst)
+    THEME.drawActionLines(ctx, 960, 600);
 
-    if (this.renderer.halftonePattern) {
-      ctx.fillStyle = this.renderer.halftonePattern;
+    // Halftone dot texture overlay at 9% opacity
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.fillStyle = THEME.halftonePattern;
       ctx.fillRect(0, 0, 960, 600);
+      ctx.restore();
     }
 
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = '#000000';
-    ctx.strokeRect(5, 5, 950, 590);
+    // 5px Ink Border around entire screen
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeRect(3, 3, 954, 594);
 
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(40, 25, 880, 42);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 18px "Bangers", "Impact", sans-serif';
+    // Top Comic Issue Banner
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.fillRect(40, 22, 880, 36);
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.font = `900 15px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '1.5px');
     ctx.textAlign = 'center';
-    ctx.fillText('COMIC JAM EDITION #1  ★  THEMES: COMIC + TWIST + LIGHT', 480, 52);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('COMIC JAM EDITION #1  •  THEMES: COMIC + TWIST + LIGHT', 480, 40);
 
+    // Big "RETCON" Title using component system styling
     ctx.save();
-    const titleY = 192;
-    ctx.font = '900 126px "Bangers", "Impact", "Arial Black", sans-serif';
-    ctx.letterSpacing = '4px';
+    const titleY = 145;
+    ctx.font = `900 88px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '4px');
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
-    ctx.fillStyle = '#000000';
-    ctx.fillText('RETCON', 480 + 9, titleY + 9);
+    // 6px Hard Offset Shadow
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.fillText('RETCON', 480 + 6, titleY + 6);
 
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = '#000000';
-    ctx.lineJoin = 'round';
+    // 6px Ink Stroke
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = THEME.colors.ink;
     ctx.strokeText('RETCON', 480, titleY);
 
-    ctx.fillStyle = '#FFFFFF';
+    // Text Fill in Primary Hot Red/Pink (#ff3860)
+    ctx.fillStyle = THEME.colors.primary;
     ctx.fillText('RETCON', 480, titleY);
     ctx.restore();
 
-    ctx.fillStyle = '#FF0055';
-    ctx.fillRect(240, 240, 480, 44);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000000';
-    ctx.strokeRect(240, 240, 480, 44);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 22px "Bangers", "Impact", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('DON’T FIGHT THE ENEMIES. REWRITE THE STORY.', 480, 270);
+    // Subtitle Tagline in Comic Speech Bubble (with pointer tail)
+    THEME.drawSpeechBubble(ctx, {
+      x: 240,
+      y: 195,
+      width: 480,
+      height: 48,
+      text: "REWRITE THE STORY. ESCAPE THE PANEL!",
+      tailX: 480,
+      tailY: 180,
+      fontSize: 17
+    });
 
-    // Play Button
-    ctx.fillStyle = '#000';
-    ctx.fillRect(364, 374, 240, 60);
-    ctx.fillStyle = '#00E676';
-    ctx.fillRect(360, 370, 240, 60);
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(360, 370, 240, 60);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 34px "Bangers", "Impact", sans-serif';
-    ctx.fillText('▶ PLAY', 480, 412);
+    // PLAY Button (Success Teal #2ec4b6)
+    const hoverPlay = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 280 && this.mousePos.y <= 340;
 
-    // Level Select Button
-    ctx.fillStyle = '#000';
-    ctx.fillRect(364, 454, 240, 50);
-    ctx.fillStyle = '#38B6FF';
-    ctx.fillRect(360, 450, 240, 50);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(360, 450, 240, 50);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 24px "Bangers", "Impact", sans-serif';
-    ctx.fillText('LEVEL SELECT', 480, 484);
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 280,
+      width: 240,
+      height: 60,
+      text: "▶ START READING",
+      bg: THEME.colors.success,
+      textColor: THEME.colors.textDark,
+      fontSize: 28,
+      isHovered: hoverPlay
+    });
 
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('Created by Team APEX: Sai Ram, Sri Vignesh Arya, Jaswanth Charry', 480, 550);
+    // LEVEL SELECT Button (Info Blue #3a86ff)
+    const hoverLevels = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 365 && this.mousePos.y <= 425;
+
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 365,
+      width: 240,
+      height: 56,
+      text: "ISSUE ARCHIVE",
+      bg: THEME.colors.info,
+      textColor: THEME.colors.textLight,
+      fontSize: 24,
+      isHovered: hoverLevels
+    });
+
+    // Team Credit inside Torn-Paper Banner Shape at bottom
+    THEME.drawTornPaperBanner(ctx, {
+      x: 140,
+      y: 470,
+      width: 680,
+      height: 46,
+      text: "TEAM APEX: SAI RAM • SRI VIGNESH ARYA • JASWANTH CHARRY"
+    });
   }
 
   renderLevelSelectScreen(ctx) {
-    ctx.fillStyle = '#1D3557';
+    THEME.init(ctx);
+
+    // Deep navy ink background (#1a1a2e)
+    ctx.fillStyle = THEME.colors.ink;
     ctx.fillRect(0, 0, 960, 600);
 
-    if (this.renderer.halftonePattern) {
-      ctx.fillStyle = this.renderer.halftonePattern;
+    // Halftone dot overlay
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.fillStyle = THEME.halftonePattern;
       ctx.fillRect(0, 0, 960, 600);
+      ctx.restore();
     }
 
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(4, 4, 952, 592);
+    // 5px Ink Border with warm paper accent
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.paper;
+    ctx.strokeRect(3, 3, 954, 594);
 
-    ctx.fillStyle = '#FFE500';
-    ctx.font = '900 38px "Bangers", "Impact", sans-serif';
+    // Section Header Title (32px, Comic Yellow #ffd400)
+    ctx.save();
+    ctx.font = `900 ${THEME.typography.headerSize}px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '2px');
     ctx.textAlign = 'center';
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = '#000';
-    ctx.strokeText('SELECT ISSUE & STARS', 480, 70);
-    ctx.fillText('SELECT ISSUE & STARS', 480, 70);
+    ctx.textBaseline = 'middle';
 
-    // 12 Level Cards (2 rows of 6)
-    const startX = 110;
-    const startY = 135;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeText('SELECT AN ISSUE', 480, 56);
+
+    ctx.fillStyle = THEME.colors.secondary;
+    ctx.fillText('SELECT AN ISSUE', 480, 56);
+    ctx.restore();
+
+    // 12 Issue Covers Grid (4 columns x 3 rows)
+    const startX = 82;
+    const startY = 95;
+    const cardW = 186;
+    const cardH = 108;
+    const gapX = 20;
+    const gapY = 16;
+
+    const THEME_TAGS = [
+      'BROKEN BRIDGE',
+      'NIGHT vs DAY',
+      'ICE vs SUNSET',
+      'SHADOW RAMP',
+      'FORTRESS GUARD',
+      'HEAVY STOMP',
+      'SPEECH BUBBLE',
+      'RAIN & VINES',
+      'HIGH VANTAGE',
+      'PANEL BREACH',
+      'NARRATOR LOCK',
+      'THE GRAND FINALE'
+    ];
+
     for (let i = 0; i < LEVELS.length; i++) {
-      const col = i % 6;
-      const row = Math.floor(i / 6);
-      const bx = startX + col * 125;
-      const by = startY + row * 145;
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const bx = startX + col * (cardW + gapX);
+      const by = startY + row * (cardH + gapY);
       const lvl = LEVELS[i];
       const starCount = this.savedStars[lvl.id] || 0;
-
-      ctx.fillStyle = '#000';
-      ctx.fillRect(bx + 4, by + 4, 105, 105);
-
-      ctx.fillStyle = '#F1FAEE';
-      ctx.fillRect(bx, by, 105, 105);
-      ctx.lineWidth = 3.5;
-      ctx.strokeStyle = '#000';
-      ctx.strokeRect(bx, by, 105, 105);
-
-      ctx.fillStyle = '#E63946';
-      ctx.font = '900 28px "Bangers", sans-serif';
-      ctx.fillText(`#${lvl.id}`, bx + 52, by + 34);
-
-      ctx.fillStyle = '#1D3557';
-      ctx.font = 'bold 11px sans-serif';
-      const shortTitle = lvl.title.split(':')[1] || lvl.title;
-      ctx.fillText(shortTitle.trim().slice(0, 13), bx + 52, by + 60);
-
-      // Star rating display
-      ctx.fillStyle = '#FFB703';
-      ctx.font = '900 16px sans-serif';
-      let starStr = starCount === 3 ? "★★★" : (starCount === 2 ? "★★☆" : (starCount === 1 ? "★☆☆" : "☆☆☆"));
-      ctx.fillText(starStr, bx + 52, by + 82);
-
       const bestRetries = this.savedRetries[lvl.id];
-      ctx.fillStyle = '#457B9D';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText(bestRetries !== undefined ? `BEST: ${bestRetries} TRIES` : `PAR: ${lvl.par || 1}`, bx + 52, by + 97);
+
+      const isHovered = this.mousePos &&
+        this.mousePos.x >= bx && this.mousePos.x <= bx + cardW &&
+        this.mousePos.y >= by && this.mousePos.y <= by + cardH;
+
+      const liftY = isHovered ? -3 : 0;
+      const shadowDist = isHovered ? 7 : 4;
+
+      // Hard offset shadow
+      ctx.fillStyle = THEME.colors.ink;
+      ctx.beginPath();
+      ctx.roundRect(bx + shadowDist, by + liftY + shadowDist, cardW, cardH, 8);
+      ctx.fill();
+
+      // Card paper background
+      ctx.fillStyle = THEME.colors.paper;
+      ctx.beginPath();
+      ctx.roundRect(bx, by + liftY, cardW, cardH, 8);
+      ctx.fill();
+
+      // Halftone overlay on card
+      if (THEME.halftonePattern) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(bx, by + liftY, cardW, cardH, 8);
+        ctx.clip();
+        ctx.fillStyle = THEME.halftonePattern;
+        ctx.fillRect(bx, by + liftY, cardW, cardH);
+        ctx.restore();
+      }
+
+      // 4px ink border
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = THEME.colors.ink;
+      ctx.beginPath();
+      ctx.roundRect(bx, by + liftY, cardW, cardH, 8);
+      ctx.stroke();
+
+      // Top-Left Badge: ISSUE #X (Primary Red #ff3860)
+      const badgeW = 76;
+      const badgeH = 22;
+      ctx.fillStyle = THEME.colors.primary;
+      ctx.beginPath();
+      ctx.roundRect(bx + 10, by + liftY + 10, badgeW, badgeH, 4);
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = THEME.colors.ink;
+      ctx.stroke();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 13px ${THEME.typography.displayFont}`;
+      THEME.applyLetterSpacing(ctx, '1px');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`ISSUE #${lvl.id}`, bx + 10 + badgeW / 2, by + liftY + 10 + badgeH / 2);
+
+      // 1-line preview of theme
+      ctx.fillStyle = THEME.colors.textDark;
+      ctx.font = `900 12px ${THEME.typography.bodyFont}`;
+      THEME.applyLetterSpacing(ctx, '1.1px');
+      ctx.textAlign = 'left';
+      ctx.fillText(THEME_TAGS[i] || 'PUZZLE', bx + 12, by + liftY + 54);
+
+      // Stars earned (0 to 3) drawn as comic star icons
+      const starStartX = bx + 14;
+      const starY = by + liftY + 84;
+      for (let s = 0; s < 3; s++) {
+        THEME.drawStar(ctx, starStartX + s * 22, starY, 9, s < starCount);
+      }
+
+      // Best retries / par label
+      ctx.fillStyle = THEME.colors.textDark;
+      ctx.font = `bold 10px ${THEME.typography.bodyFont}`;
+      ctx.textAlign = 'right';
+      const labelText = bestRetries !== undefined ? `BEST: ${bestRetries}` : `PAR: ${lvl.par || 1}`;
+      ctx.fillText(labelText, bx + cardW - 12, starY);
     }
 
-    // Back Button
-    ctx.fillStyle = '#E63946';
-    ctx.fillRect(400, 500, 160, 48);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(400, 500, 160, 48);
-    ctx.fillStyle = '#FFF';
-    ctx.font = '900 24px "Bangers", sans-serif';
-    ctx.fillText('BACK', 480, 532);
+    // BACK Button (Primary Accent #ff3860)
+    const hoverBack = this.mousePos &&
+      this.mousePos.x >= 390 && this.mousePos.x <= 570 &&
+      this.mousePos.y >= 490 && this.mousePos.y <= 545;
+
+    THEME.drawButton(ctx, {
+      x: 390,
+      y: 490,
+      width: 180,
+      height: 48,
+      text: "BACK",
+      bg: THEME.colors.primary,
+      textColor: THEME.colors.textLight,
+      fontSize: 24,
+      isHovered: hoverBack
+    });
   }
 
   renderPauseMenu(ctx) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    THEME.init(ctx);
+
+    // Dark semi-transparent overlay
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.78)';
     ctx.fillRect(0, 0, 960, 600);
 
-    ctx.fillStyle = '#FFE500';
-    ctx.font = '900 64px "Bangers", sans-serif';
+    // Center Dialog Panel using component system
+    const panelX = 330;
+    const panelY = 120;
+    const panelW = 300;
+    const panelH = 350;
+
+    THEME.drawPanel(ctx, {
+      x: panelX,
+      y: panelY,
+      width: panelW,
+      height: panelH,
+      bg: THEME.colors.paper,
+      shadowOffset: 6,
+      radius: 12
+    });
+
+    // PAUSED Title (32px Header)
+    ctx.font = `900 ${THEME.typography.headerSize}px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '2px');
     ctx.textAlign = 'center';
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = '#000';
-    ctx.strokeText('PAUSED', 480, 180);
-    ctx.fillText('PAUSED', 480, 180);
+    ctx.textBaseline = 'middle';
 
-    ctx.fillStyle = '#00E676';
-    ctx.fillRect(380, 250, 200, 50);
-    ctx.strokeRect(380, 250, 200, 50);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 26px "Bangers", sans-serif';
-    ctx.fillText('RESUME', 480, 285);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeText('PAUSED', 480, 165);
 
-    ctx.fillStyle = '#38B6FF';
-    ctx.fillRect(380, 320, 200, 50);
-    ctx.strokeRect(380, 320, 200, 50);
-    ctx.fillStyle = '#000';
-    ctx.fillText('LEVEL SELECT', 480, 355);
+    ctx.fillStyle = THEME.colors.primary;
+    ctx.fillText('PAUSED', 480, 165);
+
+    // Button 1: RESUME (Success Teal)
+    const hoverResume = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 205 && this.mousePos.y <= 260;
+
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 205,
+      width: 240,
+      height: 52,
+      text: "RESUME",
+      bg: THEME.colors.success,
+      textColor: THEME.colors.textDark,
+      fontSize: 24,
+      isHovered: hoverResume
+    });
+
+    // Button 2: LEVEL SELECT (Info Blue)
+    const hoverSelect = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 275 && this.mousePos.y <= 330;
+
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 275,
+      width: 240,
+      height: 52,
+      text: "LEVEL SELECT",
+      bg: THEME.colors.info,
+      textColor: THEME.colors.textLight,
+      fontSize: 22,
+      isHovered: hoverSelect
+    });
+
+    // Button 3: RESTART LEVEL (Secondary Yellow)
+    const hoverRestart = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 345 && this.mousePos.y <= 400;
+
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 345,
+      width: 240,
+      height: 52,
+      text: "RESTART (R)",
+      bg: THEME.colors.secondary,
+      textColor: THEME.colors.textDark,
+      fontSize: 22,
+      isHovered: hoverRestart
+    });
   }
 
+  // Page-flip animation between levels: dynamic comic paper diagonal wipe
   renderPageTurnEffect(ctx) {
-    const turnX = 960 * (1 - this.pageTurnProgress);
+    const p = this.pageTurnProgress;
+    const wipeX = 960 * (1 - p);
+
     ctx.save();
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(turnX, 0, 960, 600);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(turnX + 10, 0, 20, 600);
+    // Turning paper sheet
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.fillRect(wipeX, 0, 960 - wipeX, 600);
+
+    // Subtle halftone on turning page
+    if (THEME.halftonePattern) {
+      ctx.fillStyle = THEME.halftonePattern;
+      ctx.fillRect(wipeX, 0, 960 - wipeX, 600);
+    }
+
+    // 5px Ink dividing edge line
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.moveTo(wipeX, 0);
+    ctx.lineTo(wipeX, 600);
+    ctx.stroke();
+
+    // Soft hard-edge paper drop shadow
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.4)';
+    ctx.fillRect(wipeX - 12, 0, 12, 600);
+
     ctx.restore();
   }
 
   renderWinScreen(ctx) {
-    ctx.fillStyle = '#FFDD00';
+    THEME.init(ctx);
+
+    // Comic Yellow Background (#ffd400)
+    ctx.fillStyle = THEME.colors.secondary;
     ctx.fillRect(0, 0, 960, 600);
 
-    if (this.renderer.halftonePattern) {
-      ctx.fillStyle = this.renderer.halftonePattern;
+    // Angled action lines
+    THEME.drawActionLines(ctx, 960, 600);
+
+    // Halftone dot overlay
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.fillStyle = THEME.halftonePattern;
       ctx.fillRect(0, 0, 960, 600);
+      ctx.restore();
     }
 
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(5, 5, 950, 590);
+    // 5px Ink border
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeRect(3, 3, 954, 594);
 
-    ctx.font = '900 76px "Bangers", "Impact", sans-serif';
+    // THE END! Title (64px Display Font)
+    ctx.save();
+    ctx.font = `900 ${THEME.typography.titleSize}px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '3px');
     ctx.textAlign = 'center';
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = '#000';
-    ctx.strokeText('THE END!', 480, 110);
-    ctx.fillStyle = '#FF0055';
-    ctx.fillText('THE END!', 480, 110);
+    ctx.textBaseline = 'middle';
 
-    ctx.font = '900 30px "Bangers", sans-serif';
-    ctx.strokeText('YOU OUTSMARTED THE NARRATOR & SAVED THE COMIC!', 480, 175);
-    ctx.fillStyle = '#000';
-    ctx.fillText('YOU OUTSMARTED THE NARRATOR & SAVED THE COMIC!', 480, 175);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeText('THE END!', 480, 85);
 
-    // Stars Summary
+    ctx.fillStyle = THEME.colors.primary;
+    ctx.fillText('THE END!', 480, 85);
+    ctx.restore();
+
+    // Victory Speech Bubble
+    THEME.drawSpeechBubble(ctx, {
+      x: 180,
+      y: 135,
+      width: 600,
+      height: 48,
+      text: "YOU OUTSMARTED THE NARRATOR & SAVED THE COMIC!",
+      tailX: 480,
+      tailY: 120,
+      fontSize: 17
+    });
+
+    // Credits & Stars Summary Panel
+    THEME.drawPanel(ctx, {
+      x: 180,
+      y: 215,
+      width: 600,
+      height: 195,
+      bg: THEME.colors.paper,
+      shadowOffset: 5,
+      radius: 10
+    });
+
+    // Total Stars & Retries
     let totalStars = 0;
     for (const id in this.savedStars) {
       totalStars += this.savedStars[id];
     }
-    ctx.fillStyle = '#1D3557';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(`TOTAL STARS: ${totalStars} / 36   ★   RETRIES: ${this.deaths}`, 480, 230);
 
-    // Credits Panel
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(180, 270, 600, 150);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(180, 270, 600, 150);
+    ctx.fillStyle = THEME.colors.primary;
+    ctx.font = `900 24px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '1.5px');
+    ctx.textAlign = 'center';
+    ctx.fillText(`TOTAL STARS: ${totalStars} / 36   ★   RETRIES: ${this.deaths}`, 480, 255);
 
-    ctx.fillStyle = '#E63946';
-    ctx.font = '900 24px "Bangers", sans-serif';
-    ctx.fillText('DEVELOPED FOR GAME JAM BY TEAM APEX', 480, 310);
+    // Team APEX Credits
+    ctx.fillStyle = THEME.colors.textDark;
+    ctx.font = `900 18px ${THEME.typography.bodyFont}`;
+    ctx.fillText('DEVELOPED FOR GAME JAM BY TEAM APEX', 480, 298);
 
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('Sai Ram  •  Sri Vignesh Arya  •  Jaswanth Charry', 480, 350);
-    ctx.font = '15px sans-serif';
-    ctx.fillText('Tech: HTML5 Canvas 2D + Web Audio API (Zero Bundler/CDN)', 480, 385);
+    ctx.font = `bold 16px ${THEME.typography.bodyFont}`;
+    ctx.fillText('Sai Ram  •  Sri Vignesh Arya  •  Jaswanth Charry', 480, 335);
 
-    // Play Again button
-    ctx.fillStyle = '#00E676';
-    ctx.fillRect(360, 465, 240, 58);
-    ctx.strokeRect(360, 465, 240, 58);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 32px "Bangers", sans-serif';
-    ctx.fillText('PLAY AGAIN', 480, 506);
+    ctx.font = `14px ${THEME.typography.bodyFont}`;
+    ctx.fillText('Zero Bundler / Zero CDN / Pure HTML5 Canvas 2D + Web Audio', 480, 372);
+
+    // PLAY AGAIN Button (Success Teal)
+    const hoverPlayAgain = this.mousePos &&
+      this.mousePos.x >= 360 && this.mousePos.x <= 600 &&
+      this.mousePos.y >= 445 && this.mousePos.y <= 510;
+
+    THEME.drawButton(ctx, {
+      x: 360,
+      y: 445,
+      width: 240,
+      height: 58,
+      text: "PLAY AGAIN",
+      bg: THEME.colors.success,
+      textColor: THEME.colors.textDark,
+      fontSize: 28,
+      isHovered: hoverPlayAgain
+    });
   }
 }
 

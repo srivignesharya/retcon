@@ -84,7 +84,7 @@ class ComicRenderer {
     this.renderPanelBorder(ctx, state.currentLevel);
 
     // 10. HUD (Bottom bar: title left, retries center, controls right)
-    this.renderBottomHUD(ctx, state);
+    this.renderBottomHUD(ctx, state, mousePos);
 
     // 11. CAPTION (Top yellow narrator box with 2 lines of interactive words & typewriter speech)
     this.renderNarratorBox(ctx, state.currentLevel, ruleEngine, mousePos);
@@ -620,9 +620,11 @@ class ComicRenderer {
     }
   }
 
-  // Two-line yellow narrator caption box with typewriter dialogue support
+  // Two-line comic narrator caption box with design system component
   renderNarratorBox(ctx, level, ruleEngine, mousePos) {
     ctx.save();
+    THEME.init(ctx);
+
     const boxX = 40;
     const boxY = level.solidCaptionBox ? 64 : 14;
     const boxW = this.width - 80;
@@ -630,43 +632,82 @@ class ComicRenderer {
     // Check if 2 lines
     const lines = (level.captionTemplate || "").split('\n');
     const isMultiLine = lines.length > 1;
-    const boxH = isMultiLine ? 76 : 58;
+    const boxH = isMultiLine ? 80 : 62;
+
+    // Hard offset shadow (4px, no blur)
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(boxX + 5, boxY + 5, boxW, boxH, 8);
+    ctx.fill();
 
     // Solid Caption Box highlight if level has fourth wall feature
     if (level.solidCaptionBox) {
-      ctx.fillStyle = '#FFDD00';
-      ctx.fillRect(boxX - 4, boxY - 4, boxW + 8, boxH + 8);
+      ctx.fillStyle = THEME.colors.primary;
+      ctx.beginPath();
+      ctx.roundRect(boxX - 4, boxY - 4, boxW + 8, boxH + 8, 10);
+      ctx.fill();
     }
 
-    // Caption Box Drop Shadow
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(boxX + 5, boxY + 5, boxW, boxH);
+    // Classic Comic Yellow Caption Panel (#ffd400)
+    ctx.fillStyle = THEME.colors.secondary;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    ctx.fill();
 
-    // Classic Yellow Comic Caption Box
-    ctx.fillStyle = '#FFE500';
-    ctx.fillRect(boxX, boxY, boxW, boxH);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000000';
-    ctx.strokeRect(boxX, boxY, boxW, boxH);
+    // Halftone overlay on caption box
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+      ctx.clip();
+      ctx.fillStyle = THEME.halftonePattern;
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+      ctx.restore();
+    }
 
-    // "NARRATOR" tiny badge
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(boxX + 12, boxY - 9, 82, 18);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 11px "Bangers", "Impact", sans-serif';
+    // 5px Ink Border
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    ctx.stroke();
+
+    // Jagged comic panel top transition notch
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.moveTo(boxX + 16, boxY);
+    ctx.lineTo(boxX + 26, boxY - 5);
+    ctx.lineTo(boxX + 36, boxY);
+    ctx.closePath();
+    ctx.fill();
+
+    // "NARRATOR" Comic Badge
+    const badgeW = 90;
+    const badgeH = 20;
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(boxX + 14, boxY - 10, badgeW, badgeH, 4);
+    ctx.fill();
+
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.font = `900 12px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '1.5px');
     ctx.textAlign = 'center';
-    ctx.fillText(level.solidCaptionBox ? 'SOLID BOX' : 'NARRATOR', boxX + 53, boxY + 4);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(level.solidCaptionBox ? 'SOLID BOX' : 'NARRATOR', boxX + 14 + badgeW / 2, boxY);
 
     ruleEngine.wordBoxes = [];
     let isHoveringAnyWord = false;
     const pulse = Math.sin(Date.now() * 0.007) * 1.5;
 
-    ctx.font = isMultiLine ? '900 18px "Bangers", "Impact", sans-serif' : '900 21px "Bangers", "Impact", sans-serif';
-    try { ctx.letterSpacing = '1.5px'; } catch (e) {}
+    // Readable Komika/Arial Black caption font (min 20px padding)
+    const captionFontSize = isMultiLine ? 18 : 22;
+    ctx.font = `900 ${captionFontSize}px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '1.2px');
     ctx.textBaseline = 'middle';
 
     lines.forEach((lineText, lineIdx) => {
-      const centerY = isMultiLine ? (boxY + 23 + lineIdx * 32) : (boxY + boxH / 2 + 1);
+      const centerY = isMultiLine ? (boxY + 26 + lineIdx * 32) : (boxY + boxH / 2 + 1);
       const tokens = lineText.split(/(\[[a-zA-Z0-9_]+\])/g);
 
       let totalWidth = 0;
@@ -678,10 +719,11 @@ class ComicRenderer {
         if (match) {
           const key = match[1];
           const val = ruleEngine.words[key] || key.toUpperCase();
-          const displayWord = `[ ${val} ]`;
-          const width = ctx.measureText(displayWord).width + 14;
-          renderedParts.push({ isWord: true, key, text: displayWord, width });
-          totalWidth += width;
+          const displayWord = val;
+          // Measured with padding + 8px margin
+          const width = ctx.measureText(`[ ${displayWord} ]`).width + 16;
+          renderedParts.push({ isWord: true, key, word: displayWord, width });
+          totalWidth += width + 16; // 8px margin before and after
         } else {
           const width = ctx.measureText(token).width;
           renderedParts.push({ isWord: false, text: token, width });
@@ -689,12 +731,14 @@ class ComicRenderer {
         }
       }
 
-      let startX = boxX + (boxW - totalWidth) / 2;
+      // Center line with guaranteed min 20px padding
+      let startX = Math.max(boxX + 24, boxX + (boxW - totalWidth) / 2);
 
       for (const part of renderedParts) {
         if (part.isWord) {
+          startX += 8; // 8px margin before pill
           const isLocked = ruleEngine.isWordLocked(part.key);
-          const btnH = isMultiLine ? 28 : 36;
+          const btnH = isMultiLine ? 28 : 34;
           const wBox = {
             key: part.key,
             x: startX,
@@ -711,46 +755,24 @@ class ComicRenderer {
 
           if (isHovered) isHoveringAnyWord = true;
 
-          let drawX = wBox.x;
-          let drawY = wBox.y;
-          let drawW = wBox.width;
-          let drawH = wBox.height;
+          // Draw using THEME component system
+          THEME.drawWordPill(ctx, {
+            x: wBox.x,
+            y: wBox.y,
+            width: wBox.width,
+            height: wBox.height,
+            word: part.word,
+            isLocked,
+            isHovered,
+            pulse: isHovered ? 1.0 : (pulse > 0 ? pulse : 0)
+          });
 
-          if (isLocked) {
-            ctx.fillStyle = '#666666';
-          } else if (isHovered) {
-            drawX -= 2.5;
-            drawY -= 2;
-            drawW += 5;
-            drawH += 4;
-            ctx.fillStyle = '#FF1493';
-          } else {
-            drawX -= pulse * 0.5;
-            drawY -= pulse * 0.4;
-            drawW += pulse;
-            drawH += pulse * 0.8;
-            ctx.fillStyle = '#FF0055';
-          }
-
-          ctx.fillRect(drawX, drawY, drawW, drawH);
-          ctx.lineWidth = isHovered ? 3.5 : 2.5;
-          ctx.strokeStyle = '#000000';
-          ctx.strokeRect(drawX, drawY, drawW, drawH);
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.textAlign = 'center';
-          ctx.fillText(part.text, wBox.x + wBox.width / 2, centerY);
-
-          if (isLocked) {
-            ctx.font = '900 11px sans-serif';
-            ctx.fillText("🔒", wBox.x + wBox.width - 8, wBox.y + 6);
-            ctx.font = isMultiLine ? '900 18px "Bangers", "Impact", sans-serif' : '900 21px "Bangers", "Impact", sans-serif';
-          }
-
-          startX += part.width;
+          startX += part.width + 8; // 8px margin after pill
         } else {
-          ctx.fillStyle = '#000000';
+          ctx.fillStyle = THEME.colors.textDark;
+          ctx.font = `900 ${captionFontSize}px ${THEME.typography.bodyFont}`;
           ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
           ctx.fillText(part.text, startX, centerY);
           startX += part.width;
         }
@@ -761,57 +783,135 @@ class ComicRenderer {
       this.canvas.style.cursor = isHoveringAnyWord ? 'pointer' : 'default';
     }
 
-    // Typewriter Subtitle Box below caption
+    // Typewriter Subtitle Box below caption using paper panel
     if (window.narratorVoice && window.narratorVoice.currentText) {
-      const subY = boxY + boxH + 6;
-      ctx.font = '900 13px "Bangers", "Impact", sans-serif';
-      const textW = ctx.measureText("NARRATOR: " + window.narratorVoice.currentText).width + 20;
+      const subY = boxY + boxH + 8;
+      ctx.font = `bold ${THEME.typography.smallSize}px ${THEME.typography.bodyFont}`;
+      THEME.applyLetterSpacing(ctx, '1.2px');
+      const textW = ctx.measureText("NARRATOR: " + window.narratorVoice.currentText).width + 24;
       const subX = 480 - textW / 2;
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      ctx.fillRect(subX, subY, textW, 22);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#FFE500';
-      ctx.strokeRect(subX, subY, textW, 22);
+      THEME.drawPanel(ctx, {
+        x: subX,
+        y: subY,
+        width: textW,
+        height: 28,
+        bg: THEME.colors.paper,
+        shadowOffset: 3,
+        radius: 6,
+        hasHalftone: true
+      });
 
-      ctx.fillStyle = '#FFE500';
+      ctx.fillStyle = THEME.colors.textDark;
       ctx.textAlign = 'center';
-      ctx.fillText("NARRATOR: " + window.narratorVoice.currentText, 480, subY + 12);
+      ctx.textBaseline = 'middle';
+      ctx.fillText("NARRATOR: " + window.narratorVoice.currentText, 480, subY + 14);
     }
 
     ctx.restore();
   }
 
-  // HUD: Left = issue title, Center = RETRIES & EDITS/PAR, Right = controls hint
-  renderBottomHUD(ctx, state) {
+  // HUD: Fixed height 48px at the bottom (y: 552 to 600)
+  // 3 zones with equal padding: Left: level name, Center: retries & stars, Right: expandable controls
+  renderBottomHUD(ctx, state, mousePos) {
     ctx.save();
-    try { ctx.letterSpacing = '1.5px'; } catch (e) {}
-    const hudY = this.height - 20;
+    THEME.init(ctx);
 
-    ctx.font = '900 14px "Bangers", "Impact", sans-serif';
+    const hudH = 48;
+    const hudY = this.height - hudH;
 
-    const controlsText = 'A/D Move | Space Jump | R Restart | M Mute';
-    ctx.fillStyle = '#ADB5BD';
-    ctx.textAlign = 'right';
-    ctx.fillText(controlsText, this.width - 24, hudY);
+    // Fixed 48px HUD panel background (Paper background with 4px ink top border & shadow)
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.fillRect(0, hudY, this.width, hudH);
 
-    // Center: RETRIES and EDITS / PAR
-    const par = state.currentLevel.par || 1;
-    const edits = state.levelEdits || 0;
-    const retriesText = `RETRIES: ${state.deaths}   ★   EDITS: ${edits}/${par}`;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'center';
-    ctx.fillText(retriesText, this.width / 2, hudY);
+    // Subtle halftone dot overlay
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.fillStyle = THEME.halftonePattern;
+      ctx.fillRect(0, hudY, this.width, hudH);
+      ctx.restore();
+    }
 
-    // Left: Title
-    ctx.fillStyle = '#FFE600';
+    // 4px top ink border
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.moveTo(0, hudY);
+    ctx.lineTo(this.width, hudY);
+    ctx.stroke();
+
+    const centerY = hudY + hudH / 2;
+
+    // ZONE 1: Left (Level Name) - max width 310px with clean ellipsis
+    ctx.font = `900 ${THEME.typography.smallSize}px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '1.2px');
+    ctx.fillStyle = THEME.colors.textDark;
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
     let titleText = `${state.currentLevel.title}`;
-    const maxTitleW = this.width / 2 - 120;
+    const maxTitleW = 310;
     while (ctx.measureText(titleText).width > maxTitleW && titleText.length > 8) {
       titleText = titleText.slice(0, -4) + '...';
     }
-    ctx.fillText(titleText, 24, hudY);
+    ctx.fillText(titleText, 24, centerY);
+
+    // ZONE 2: Center (Retry counter + par + stars)
+    const par = state.currentLevel.par || 1;
+    const edits = state.levelEdits || 0;
+    const retries = state.deaths || 0;
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = THEME.colors.textDark;
+    ctx.font = `900 15px ${THEME.typography.bodyFont}`;
+    const infoText = `RETRIES: ${retries}   •   EDITS: ${edits}/${par}   •   `;
+    const infoW = ctx.measureText(infoText).width;
+    const centerStartX = 480 - (infoW + 65) / 2;
+
+    ctx.textAlign = 'left';
+    ctx.fillText(infoText, centerStartX, centerY);
+
+    // Draw 3 comic stars
+    let currentStars = 1;
+    if (edits <= par) currentStars = 3;
+    else if (edits <= par + 2) currentStars = 2;
+
+    const starsStartX = centerStartX + infoW + 8;
+    for (let s = 0; s < 3; s++) {
+      THEME.drawStar(ctx, starsStartX + s * 20, centerY, 8, s < currentStars);
+    }
+
+    // ZONE 3: Right (Controls icon that expands to text on hover)
+    const isHoveringControls = mousePos &&
+      mousePos.x >= 650 && mousePos.y >= hudY;
+
+    if (isHoveringControls) {
+      // Expanded full controls text
+      ctx.textAlign = 'right';
+      ctx.fillStyle = THEME.colors.primary;
+      ctx.font = `900 13px ${THEME.typography.bodyFont}`;
+      THEME.applyLetterSpacing(ctx, '1.0px');
+      ctx.fillText('A/D MOVE  •  SPACE JUMP  •  R RESTART  •  M MUTE', this.width - 24, centerY);
+    } else {
+      // Compact comic badge
+      const badgeW = 140;
+      const badgeH = 28;
+      const badgeX = this.width - badgeW - 20;
+      const badgeY = centerY - badgeH / 2;
+
+      THEME.drawButton(ctx, {
+        x: badgeX,
+        y: badgeY,
+        width: badgeW,
+        height: badgeH,
+        text: '⌨ CONTROLS [?]',
+        bg: THEME.colors.info,
+        textColor: THEME.colors.textLight,
+        fontSize: 13,
+        font: THEME.typography.bodyFont,
+        isHovered: false
+      });
+    }
 
     ctx.restore();
   }
