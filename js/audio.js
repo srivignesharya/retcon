@@ -327,6 +327,72 @@ class SoundSystem {
       osc.stop(t + 0.08);
     } catch (e) {}
   }
+
+  // Padlock slam & click sound effect
+  playPadlockClick() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // High metallic latch click
+      const clickOsc = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      clickOsc.type = 'square';
+      clickOsc.frequency.setValueAtTime(1800, t);
+      clickOsc.frequency.exponentialRampToValueAtTime(320, t + 0.05);
+      clickGain.gain.setValueAtTime(0.4, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      clickOsc.connect(clickGain);
+      clickGain.connect(this.masterGain);
+      clickOsc.start(t);
+      clickOsc.stop(t + 0.05);
+
+      // Heavy iron shackle clang thud
+      const thudOsc = this.ctx.createOscillator();
+      const thudGain = this.ctx.createGain();
+      thudOsc.type = 'sawtooth';
+      thudOsc.frequency.setValueAtTime(190, t);
+      thudOsc.frequency.exponentialRampToValueAtTime(45, t + 0.18);
+      thudGain.gain.setValueAtTime(0.35, t);
+      thudGain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+      thudOsc.connect(thudGain);
+      thudGain.connect(this.masterGain);
+      thudOsc.start(t);
+      thudOsc.stop(t + 0.18);
+    } catch (e) {}
+  }
+
+  // Mechanical padlock unlock chime
+  playUnlockChime() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // Light click
+      const clickOsc = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      clickOsc.type = 'triangle';
+      clickOsc.frequency.setValueAtTime(1200, t);
+      clickOsc.frequency.exponentialRampToValueAtTime(600, t + 0.04);
+      clickGain.gain.setValueAtTime(0.2, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      clickOsc.connect(clickGain);
+      clickGain.connect(this.masterGain);
+      clickOsc.start(t);
+      clickOsc.stop(t + 0.04);
+
+      // Bright bell chime
+      const bellOsc = this.ctx.createOscillator();
+      const bellGain = this.ctx.createGain();
+      bellOsc.type = 'sine';
+      bellOsc.frequency.setValueAtTime(1046.5, t + 0.03); // C6
+      bellOsc.frequency.exponentialRampToValueAtTime(1318.5, t + 0.25); // E6
+      bellGain.gain.setValueAtTime(0.25, t + 0.03);
+      bellGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      bellOsc.connect(bellGain);
+      bellGain.connect(this.masterGain);
+      bellOsc.start(t + 0.03);
+      bellOsc.stop(t + 0.28);
+    } catch (e) {}
+  }
 }
 
 window.sounds = new SoundSystem();

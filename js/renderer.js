@@ -767,6 +767,20 @@ class ComicRenderer {
             pulse: isHovered ? 1.0 : (pulse > 0 ? pulse : 0)
           });
 
+          // Visible circular countdown timer above locked word
+          if (isLocked) {
+            const remaining = ruleEngine.getLockRemaining(part.key);
+            const progress = ruleEngine.getLockProgress(part.key);
+            this.drawLockCountdown(ctx, {
+              x: wBox.x,
+              y: wBox.y,
+              width: wBox.width,
+              height: wBox.height,
+              remaining,
+              progress
+            });
+          }
+
           startX += part.width + 8; // 8px margin after pill
         } else {
           ctx.fillStyle = THEME.colors.textDark;
@@ -912,6 +926,74 @@ class ComicRenderer {
         isHovered: false
       });
     }
+
+    ctx.restore();
+  }
+
+  // COMPONENT: Visible circular countdown meter above locked word
+  drawLockCountdown(ctx, { x, y, width, height, remaining, progress }) {
+    ctx.save();
+    THEME.init(ctx);
+    const cx = x + width / 2;
+    const cy = y - 14;
+    const badgeW = 90;
+    const badgeH = 22;
+    const rad = 11;
+
+    // Hard drop shadow
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(cx - badgeW / 2 + 2, cy - badgeH / 2 + 2, badgeW, badgeH, rad);
+    ctx.fill();
+
+    // Paper background
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.beginPath();
+    ctx.roundRect(cx - badgeW / 2, cy - badgeH / 2, badgeW, badgeH, rad);
+    ctx.fill();
+
+    // Ink border
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.stroke();
+
+    // 1) Small circular timer icon next to padlock that visibly drains
+    const circleX = cx - badgeW / 2 + 15;
+    const circleY = cy;
+    const circleR = 6.5;
+
+    // Background track circle
+    ctx.fillStyle = '#E5E5E5';
+    ctx.beginPath();
+    ctx.arc(circleX, circleY, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.stroke();
+
+    // Draining radial sector (starts at 12 o'clock, drains clockwise)
+    if (progress > 0) {
+      ctx.fillStyle = THEME.colors.primary; // Hot pink #ff3860
+      ctx.beginPath();
+      ctx.moveTo(circleX, circleY);
+      ctx.arc(circleX, circleY, circleR, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mini center pivot pin
+      ctx.fillStyle = THEME.colors.ink;
+      ctx.beginPath();
+      ctx.arc(circleX, circleY, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 2) Padlock icon + remaining seconds badge
+    ctx.fillStyle = THEME.colors.textDark;
+    ctx.font = `900 11px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '0.5px');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`🔒 ${remaining.toFixed(1)}s`, cx - badgeW / 2 + 27, cy);
 
     ctx.restore();
   }

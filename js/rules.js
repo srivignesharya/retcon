@@ -15,21 +15,44 @@ class RuleEngine {
     };
     this.wordBoxes = []; // Clickable bounds [{ key, word, x, y, width, height, isLocked }]
     this.lockedWords = {}; // key -> remaining seconds
+    this.lockMaxDuration = {}; // key -> max duration seconds
   }
 
   setWords(initialWords, wordOptions = null) {
     this.words = { ...initialWords };
     this.wordBoxes = [];
     this.lockedWords = {};
+    this.lockMaxDuration = {};
     this.currentLevelWordOptions = wordOptions || {};
   }
 
   lockWord(key, duration) {
     this.lockedWords[key] = duration;
+    this.lockMaxDuration[key] = duration;
+
+    // Narrator caption feedback on lock
+    if (window.narratorVoice) {
+      window.narratorVoice.speak("Not so fast...");
+    }
+
+    // Trigger one-time HUD tooltip
+    if (window.game && typeof window.game.triggerLockTooltip === 'function') {
+      window.game.triggerLockTooltip();
+    }
   }
 
   isWordLocked(key) {
     return (this.lockedWords[key] || 0) > 0;
+  }
+
+  getLockRemaining(key) {
+    return Math.max(0, this.lockedWords[key] || 0);
+  }
+
+  getLockProgress(key) {
+    const max = this.lockMaxDuration[key] || 5.0;
+    const cur = this.getLockRemaining(key);
+    return cur > 0 ? (cur / max) : 0;
   }
 
   update(dt) {
@@ -38,6 +61,28 @@ class RuleEngine {
         this.lockedWords[key] -= dt;
         if (this.lockedWords[key] <= 0) {
           delete this.lockedWords[key];
+          delete this.lockMaxDuration[key];
+
+          // Feedback when word unlocks
+          if (window.sounds) {
+            if (typeof window.sounds.playUnlockChime === 'function') {
+              window.sounds.playUnlockChime();
+            } else if (typeof window.sounds.playStar === 'function') {
+              window.sounds.playStar(2);
+            }
+          }
+
+          if (window.narratorVoice) {
+            window.narratorVoice.speak("Fine. Go ahead.");
+          }
+
+          if (window.fx) {
+            window.fx.triggerShake(5);
+            window.fx.addPopup("UNLOCKED!", 480, 80, {
+              color: (window.THEME ? window.THEME.colors.success : '#2ec4b6'),
+              scale: 1.25
+            });
+          }
         }
       }
     }
@@ -46,8 +91,18 @@ class RuleEngine {
   // Cycle a word to its next option
   cycleWord(key, heroPos = null) {
     if (this.isWordLocked(key)) {
-      if (window.sounds) window.sounds.playDeath();
-      if (window.fx) window.fx.addPopup("LOCKED!", 480, 70, { color: '#FF3333' });
+      if (window.sounds) {
+        if (typeof window.sounds.playPadlockClick === 'function') {
+          window.sounds.playPadlockClick();
+        } else {
+          window.sounds.playDeath();
+        }
+      }
+      const rem = this.getLockRemaining(key).toFixed(1);
+      if (window.fx) {
+        window.fx.triggerShake(4);
+        window.fx.addPopup(`LOCKED! (${rem}s)`, 480, 70, { color: '#ff3860', scale: 1.15 });
+      }
       return false;
     }
 

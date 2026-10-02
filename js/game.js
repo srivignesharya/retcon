@@ -54,6 +54,14 @@ class RetconGame {
     // Death respawn delay
     this.respawnTimer = 0;
 
+    // Level 9 Flashback Panel Modal State
+    this.seenLevel9Flashback = false;
+    this.activeFlashback = null;
+
+    // One-time Lock Tooltip State
+    this.hasShownLockTooltip = false;
+    this.lockTooltipTimer = 0;
+
     // Hook inputs & events
     this.setupInputs();
     this.setupWindowEvents();
@@ -99,6 +107,12 @@ class RetconGame {
   setupInputs() {
     window.addEventListener('keydown', (e) => {
       if (this.sounds) this.sounds.init();
+
+      // Dismiss Level 9 Flashback modal on any keypress
+      if (this.activeFlashback && this.activeFlashback.active) {
+        this.dismissFlashback();
+        return;
+      }
 
       // Debug Level Skip: N = Next, B = Previous
       if (e.code === 'KeyN') {
@@ -173,6 +187,12 @@ class RetconGame {
       this.mousePos.x = (e.clientX - rect.left) * scaleX;
       this.mousePos.y = (e.clientY - rect.top) * scaleY;
 
+      // Pointer cursor when flashback modal is active
+      if (this.activeFlashback && this.activeFlashback.active) {
+        this.canvas.style.cursor = 'pointer';
+        return;
+      }
+
       const x = this.mousePos.x, y = this.mousePos.y;
       if (this.state === 'TITLE') {
         const onPlay = x >= 360 && x <= 600 && y >= 370 && y <= 430;
@@ -215,6 +235,11 @@ class RetconGame {
   }
 
   handleClick(x, y) {
+    // Dismiss Level 9 Flashback modal on any canvas click
+    if (this.activeFlashback && this.activeFlashback.active) {
+      this.dismissFlashback();
+      return;
+    }
     if (this.state === 'TITLE') {
       // START READING (PLAY) button
       if (x >= 360 && x <= 600 && y >= 280 && y <= 340) {
@@ -356,8 +381,20 @@ class RetconGame {
     if (this.fx) this.fx.clear();
 
     this.ruleEngine.setWords(levelData.words, levelData.wordOptions);
-    if (levelData.onInit) {
-      levelData.onInit(this.ruleEngine);
+
+    // Level 9 first-time entry: trigger comic flashback panel popup!
+    if (levelData.id === 9 && !this.seenLevel9Flashback) {
+      this.activeFlashback = {
+        active: true,
+        timer: 0,
+        slammed: false,
+        word: "BROKEN"
+      };
+      // Note: levelData.onInit will run once the player dismisses the flashback modal
+    } else {
+      if (levelData.onInit) {
+        levelData.onInit(this.ruleEngine);
+      }
     }
 
     this.hero = new Hero(levelData.heroStart.x, levelData.heroStart.y);
@@ -370,10 +407,31 @@ class RetconGame {
       levelData.twist.activated = false;
     }
 
-    // Narrator voice reaction
-    if (this.narrator) {
+    // Narrator voice reaction (only if not starting flashback modal)
+    if (this.narrator && (!this.activeFlashback || !this.activeFlashback.active)) {
       this.narrator.onLevelStart(index);
     }
+  }
+
+  // Dismiss Level 9 Flashback modal and start level action
+  dismissFlashback() {
+    if (!this.activeFlashback || !this.activeFlashback.active) return;
+    this.seenLevel9Flashback = true;
+    this.activeFlashback.active = false;
+    if (this.sounds && typeof this.sounds.playButtonThunk === 'function') {
+      this.sounds.playButtonThunk();
+    }
+    // Now trigger Level 9 onInit, locking the word for 5.0 seconds
+    if (this.currentLevel && this.currentLevel.onInit) {
+      this.currentLevel.onInit(this.ruleEngine);
+    }
+  }
+
+  // One-time lock tooltip text under the HUD
+  triggerLockTooltip() {
+    if (this.hasShownLockTooltip) return;
+    this.hasShownLockTooltip = true;
+    this.lockTooltipTimer = 7.0; // Display for 7 seconds
   }
 
   restartLevel() {
@@ -439,6 +497,29 @@ class RetconGame {
 
   update(dt) {
     if (this.fx) this.fx.update(dt);
+
+    // Update lock tooltip display countdown
+    if (this.lockTooltipTimer > 0) {
+      this.lockTooltipTimer -= dt;
+    }
+
+    // Freeze gameplay updates while Level 9 flashback modal is active
+    if (this.activeFlashback && this.activeFlashback.active) {
+      this.activeFlashback.timer += dt;
+      // After brief pause (0.35s), slam the padlock down onto the word!
+      if (this.activeFlashback.timer >= 0.35 && !this.activeFlashback.slammed) {
+        this.activeFlashback.slammed = true;
+        if (this.sounds && typeof this.sounds.playPadlockClick === 'function') {
+          this.sounds.playPadlockClick();
+        }
+        if (this.fx) {
+          this.fx.triggerShake(14);
+          this.fx.addPopup("CLICK!", 480, 240, { color: '#ff3860', scale: 1.4 });
+        }
+      }
+      return;
+    }
+
     if (this.ruleEngine) this.ruleEngine.update(dt);
 
     if (this.state === 'PLAYING') {
@@ -639,6 +720,9 @@ class RetconGame {
         this.mousePos
       );
 
+      // Render one-time lock tooltip text under the HUD
+      this.renderLockTooltip(ctx);
+
       // Render boss projectiles
       if (this.bossProjectiles && this.bossProjectiles.length > 0) {
         for (const p of this.bossProjectiles) {
@@ -664,6 +748,11 @@ class RetconGame {
 
       if (this.state === 'PAUSED') {
         this.renderPauseMenu(ctx);
+      }
+
+      // Render Level 9 comic flashback panel modal if active
+      if (this.activeFlashback && this.activeFlashback.active) {
+        this.renderFlashbackPanel(ctx);
       }
     }
 
@@ -1177,6 +1266,252 @@ class RetconGame {
       fontSize: 28,
       isHovered: hoverPlayAgain
     });
+  }
+
+  // COMPONENT: One-time tooltip banner anchored to the HUD
+  renderLockTooltip(ctx) {
+    if (this.lockTooltipTimer <= 0) return;
+    THEME.init(ctx);
+
+    ctx.save();
+    const tipW = 540;
+    const tipH = 38;
+    const tipX = 480 - tipW / 2;
+    const tipY = 506; // Anchored directly above the 48px HUD (HUD is y: 552-600)
+
+    // 4px ink drop shadow
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(tipX + 4, tipY + 4, tipW, tipH, 6);
+    ctx.fill();
+
+    // Comic yellow highlight background
+    ctx.fillStyle = THEME.colors.secondary;
+    ctx.beginPath();
+    ctx.roundRect(tipX, tipY, tipW, tipH, 6);
+    ctx.fill();
+
+    // 3px ink stroke
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.stroke();
+
+    // Tooltip message
+    ctx.fillStyle = THEME.colors.textDark;
+    ctx.font = `900 15px ${THEME.typography.bodyFont}`;
+    THEME.applyLetterSpacing(ctx, '1.2px');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("🔒 Locked words can't be changed yet - wait it out.", 480, tipY + tipH / 2);
+
+    ctx.restore();
+  }
+
+  // COMPONENT: Level 9 Comic Flashback Panel Modal
+  renderFlashbackPanel(ctx) {
+    if (!this.activeFlashback || !this.activeFlashback.active) return;
+    THEME.init(ctx);
+    const fb = this.activeFlashback;
+
+    ctx.save();
+    // 1) Darkened comic noir ink backdrop overlay
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.88)';
+    ctx.fillRect(0, 0, 960, 600);
+
+    // Dynamic angled action lines behind panel
+    THEME.drawActionLines(ctx, 960, 600);
+
+    // 2) Comic Panel Box
+    const panelX = 180;
+    const panelY = 70;
+    const panelW = 600;
+    const panelH = 450;
+
+    // 8px Hard drop shadow
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.fillRect(panelX + 8, panelY + 8, panelW, panelH);
+
+    // Warm cream paper background
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+
+    // Halftone overlay
+    if (THEME.halftonePattern) {
+      ctx.save();
+      ctx.fillStyle = THEME.halftonePattern;
+      ctx.fillRect(panelX, panelY, panelW, panelH);
+      ctx.restore();
+    }
+
+    // 5px Ink border
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+    // 3) Top Ribbon Banner
+    ctx.fillStyle = THEME.colors.primary;
+    ctx.fillRect(panelX, panelY, panelW, 46);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeRect(panelX, panelY, panelW, 46);
+
+    ctx.fillStyle = THEME.colors.paper;
+    ctx.font = `900 22px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '2px');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("FLASHBACK // NARRATOR'S INTERFERENCE", panelX + panelW / 2, panelY + 23);
+
+    // 4) Narrator Speech Bubble: "Let's see how you handle THIS,"
+    THEME.drawSpeechBubble(ctx, {
+      x: panelX + 45,
+      y: panelY + 68,
+      width: panelW - 90,
+      height: 54,
+      text: '"Let\'s see how you handle THIS,"',
+      tailX: panelX + 110,
+      tailY: panelY + 138,
+      fontSize: 22
+    });
+
+    // 5) Close-up Word Panel Box in center
+    const wordBoxX = panelX + 160;
+    const wordBoxY = panelY + 180;
+    const wordBoxW = 280;
+    const wordBoxH = 68;
+
+    // Hard shadow
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(wordBoxX + 5, wordBoxY + 5, wordBoxW, wordBoxH, 14);
+    ctx.fill();
+
+    // Word Pill Body (Locked grey if slammed, or hot pink before slam)
+    ctx.fillStyle = fb.slammed ? THEME.colors.locked : THEME.colors.primary;
+    ctx.beginPath();
+    ctx.roundRect(wordBoxX, wordBoxY, wordBoxW, wordBoxH, 14);
+    ctx.fill();
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.stroke();
+
+    // Word text in close-up
+    ctx.fillStyle = fb.slammed ? THEME.colors.paper : '#FFFFFF';
+    ctx.font = `900 32px ${THEME.typography.displayFont}`;
+    THEME.applyLetterSpacing(ctx, '3px');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.strokeText(`[ ${fb.word} ]`, wordBoxX + wordBoxW / 2, wordBoxY + wordBoxH / 2);
+    ctx.fillText(`[ ${fb.word} ]`, wordBoxX + wordBoxW / 2, wordBoxY + wordBoxH / 2);
+
+    // 6) Padlock Slam Animation
+    const slamProgress = Math.min(1.0, fb.timer / 0.35);
+    const dropEase = slamProgress * slamProgress; // easeInQuad
+    const startPadlockY = panelY + 20;
+    const endPadlockY = wordBoxY - 45;
+    const currentPadlockY = startPadlockY + (endPadlockY - startPadlockY) * dropEase;
+    const padlockCX = wordBoxX + 42;
+
+    // Draw Padlock
+    ctx.save();
+    ctx.translate(padlockCX, currentPadlockY);
+    if (fb.slammed) {
+      const bounce = Math.sin((fb.timer - 0.35) * 25) * Math.max(0, 1.0 - (fb.timer - 0.35) * 3) * 4;
+      ctx.translate(0, bounce);
+    }
+
+    // Heavy Brass Shackle (Loop)
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = THEME.colors.secondary; // Comic Yellow #ffd400
+    ctx.beginPath();
+    ctx.arc(0, -18, 22, Math.PI, 0, false);
+    ctx.stroke();
+
+    // Shackle ink outline
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.arc(0, -18, 26, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -18, 18, Math.PI, 0, false);
+    ctx.stroke();
+
+    // Padlock Body
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.roundRect(-24 + 4, -4 + 4, 48, 44, 8);
+    ctx.fill();
+
+    ctx.fillStyle = THEME.colors.primary; // Hot pink #ff3860
+    ctx.beginPath();
+    ctx.roundRect(-24, -4, 48, 44, 8);
+    ctx.fill();
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = THEME.colors.ink;
+    ctx.stroke();
+
+    // Keyhole
+    ctx.fillStyle = THEME.colors.ink;
+    ctx.beginPath();
+    ctx.arc(0, 14, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-2, 14);
+    ctx.lineTo(2, 14);
+    ctx.lineTo(3.5, 26);
+    ctx.lineTo(-3.5, 26);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    // 7) Comic "CLICK!" burst effect beside the lock when slammed
+    if (fb.slammed) {
+      ctx.save();
+      const burstX = wordBoxX + 115;
+      const burstY = wordBoxY - 35;
+      THEME.drawStar(ctx, burstX, burstY, 32, true);
+
+      ctx.font = `900 28px ${THEME.typography.displayFont}`;
+      THEME.applyLetterSpacing(ctx, '2px');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = THEME.colors.ink;
+      ctx.fillText('CLICK!', burstX + 3, burstY + 3);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = THEME.colors.ink;
+      ctx.strokeText('CLICK!', burstX, burstY);
+      ctx.fillStyle = THEME.colors.secondary;
+      ctx.fillText('CLICK!', burstX, burstY);
+      ctx.restore();
+    }
+
+    // 8) Dismiss Prompt Button at bottom of panel
+    const pulse = 1.0 + Math.sin(Date.now() * 0.008) * 0.04;
+    ctx.save();
+    ctx.translate(panelX + panelW / 2, panelY + panelH - 45);
+    ctx.scale(pulse, pulse);
+    ctx.translate(-(panelX + panelW / 2), -(panelY + panelH - 45));
+
+    THEME.drawButton(ctx, {
+      x: panelX + 70,
+      y: panelY + panelH - 68,
+      width: panelW - 140,
+      height: 46,
+      text: 'CLICK OR PRESS ANY KEY TO DISMISS',
+      bg: THEME.colors.success,
+      textColor: THEME.colors.paper,
+      fontSize: 16,
+      font: THEME.typography.bodyFont,
+      isHovered: true
+    });
+    ctx.restore();
+
+    ctx.restore();
   }
 }
 
